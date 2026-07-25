@@ -8,13 +8,15 @@ Liste görünümü, harita üzerinde işaretçiler, büyüklük/tarih/konum filt
 
 ## Özellikler
 
+- **Üç sekmeli yapı** — Liste, Harita ve Ayarlar. Alt sekme çubuğu ile tek elle erişilebilir.
 - **İki veri kaynağı** — AFAD ve Kandilli arasında geçiş yapılabilir. Biri gecikirse veya erişilemezse diğerine geçerek uygulama çalışmaya devam eder.
-- **Liste görünümü** — büyüklüğe göre renk kodlu kartlar, "3 saat önce" gibi okunabilir zaman bilgisi
-- **Harita görünümü** — tüm depremler tek haritada; işaretçi boyutu ve rengi büyüklüğe göre değişir
-- **Filtreler** — zaman aralığı (24 saat / 3 / 7 / 30 gün), minimum büyüklük, konum arama
-- **Detay ekranı** — konum haritası, derinlik, koordinatlar, tam tarih, kaynak bilgisi
-- **Aşağı çekerek yenileme** ve anlaşılır hata ekranları
-- **Koyu tema desteği** — telefonun sistem ayarını takip eder
+- **Tek dokunuşluk hızlı filtreler** — Tümü / Son 1 saat / Bugün / Hissedilenler 3.0+ / Güçlü 4.5+
+- **Ayrıntılı filtre paneli** — alttan açılır: kaynak, zaman aralığı, minimum büyüklük, sıralama
+- **Tercih hafızası** — seçilen kaynak ve filtreler telefonda saklanır, uygulama kapanınca unutulmaz
+- **İskelet yükleme** — boş ekran yerine parıldayan kart taslakları; bekleme daha kısa hissettirir
+- **Etkileşimli harita** — işaretçiye dokununca alttan özet kart çıkar, oradan detaya geçilir
+- **Paylaş ve kopyala** — deprem bilgisi, koordinatlar veya harita bağlantısı panoya kopyalanabilir
+- **Aşağı çekerek yenileme**, yumuşak geçişler ve yol gösteren hata/boş ekranlar
 
 **API anahtarı gerekmez.** Hem deprem verileri hem de harita (OpenStreetMap) tamamen ücretsiz ve açık kaynaklıdır.
 
@@ -23,24 +25,42 @@ Liste görünümü, harita üzerinde işaretçiler, büyüklük/tarih/konum filt
 ## Ekran Yapısı
 
 ```
-┌──────────────────────────┐     ┌──────────────────────────┐
-│ Deprem Takip   🗺 ⚙ ↻    │     │  Deprem Detayı           │
-├──────────────────────────┤     ├──────────────────────────┤
-│ Veri kaynağı: AFAD |Kand.│     │         ███ 4.1 ███      │
-│ Zaman: 24s |3g |7g |30g  │     │       Hissedilir         │
-│ Min büyüklük: ──●───     │     │    Akçadağ (Malatya)     │
-│ 🔍 Konum ara             │     ├──────────────────────────┤
-├──────────────────────────┤     │                          │
-│ 128 deprem · en büyük 5.2│     │      [  HARİTA  ]        │
-├──────────────────────────┤     │                          │
-│ ┌───┐ Akçadağ (Malatya)  │     ├──────────────────────────┤
-│ │4.1│ Hissedilir·11.5 km │ ──▶ │ 🕐 23.07.2026 07:26      │
-│ └───┘ 3 gün önce      ›  │     │ ⬇  11.46 km              │
-│ ┌───┐ Ege Denizi         │     │ 📍 38.3507, 37.8618      │
-│ │3.9│ Orta · 13.4 km     │     │ ✓  AFAD                  │
-│ └───┘ 2 gün önce      ›  │     │                          │
-└──────────────────────────┘     └──────────────────────────┘
+┌──────────────────────────┐   ┌──────────────────────────┐
+│ Son Depremler        ↻   │   │ ◀            Paylaş ⇪    │
+│ ● Kandilli · az önce     │   │                          │
+│ ┌────────────────┐ ┌───┐ │   │          4.1             │
+│ │🔍 Şehir ara    │ │ ⚙②│ │   │       HİSSEDİLİR         │
+│ └────────────────┘ └───┘ │   ├──────────────────────────┤
+│ [Tümü][Son 1s][Bugün][3+]│   │ ┌─────────┐ ┌──────────┐ │
+├──────────────────────────┤   │ │BÜYÜKLÜK │ │ DERİNLİK │ │
+│ 128 deprem · en büyük 5.2│   │ │  4.1    │ │  11.5    │ │
+├──────────────────────────┤   │ └─────────┘ └──────────┘ │
+│ ▌┌───┐ Akçadağ (Malatya) │   │ ┌──────────────────────┐ │
+│ ▌│4.1│ 🕐3 gün ⬇11.5km › │──▶│ │      HARİTA          │ │
+│ ▌│ M │                   │   │ └──────────────────────┘ │
+│ ▌└───┘                   │   │ 📍 Konum · 🕐 Tarih      │
+│ ▌┌───┐ Ege Denizi        │   │ 🎯 Koordinat · ✓ Kaynak  │
+│ ▌│3.9│ 🕐2 gün ⬇13.4km › │   │ [Bilgileri] [Koordinat]  │
+├──────────────────────────┤   │ [ kopyala ] [ kopyala  ] │
+│  ▣ Liste  🗺 Harita  ⚙   │   └──────────────────────────┘
+└──────────────────────────┘
 ```
+
+---
+
+## Tasarım Kararları
+
+**Koyu tema, tek seçenek.** Deprem/afet uygulamalarının yaygın görsel dili koyu zemin. Büyüklük renkleri koyu üzerinde çok daha okunaklı çıkıyor ve gece bakıldığında göz yormuyor.
+
+**Bilgi hiyerarşisi.** Kartta göz önce sol taraftaki renkli büyüklük rozetine takılıyor, sonra konuma, en son derinlik/zaman gibi ayrıntılara. Sol kenardaki renk şeridi listeyi hızlı taramayı sağlıyor.
+
+**Sık kullanılan üstte, nadir kullanılan panelde.** Hızlı filtreler ana ekranda; kaynak seçimi, sıralama gibi daha seyrek değiştirilenler alttan açılan panelde. Ana ekran böylece sade kalıyor.
+
+**İskelet yükleme.** Dönen çark yerine kart taslakları gösteriliyor. Kullanıcı ne geleceğini gördüğü için bekleme daha kısa hissediliyor, ekran dolduğunda sıçrama olmuyor.
+
+**Filtre rozeti.** Kaç filtre aktifse filtre butonunda sayı olarak görünüyor — kullanıcı "neden az sonuç var?" sorusunun cevabını arayüzde görüyor.
+
+**Boş ekranlar yol gösteriyor.** Her boş/hata ekranı üç soruya cevap veriyor: ne oldu, neden oldu, şimdi ne yapabilirim. Bu yüzden hepsinde bir eylem butonu var — hata durumunda "diğer kaynağı dene" gibi.
 
 ---
 
@@ -97,22 +117,44 @@ flutter run
 
 ```
 lib/
-├── main.dart                     Uygulama girişi, tema ayarları
+├── main.dart                     Uygulama girişi, tema kaydı
 ├── models/
-│   └── deprem.dart               Deprem veri modeli + iki farklı JSON çözümleyici
+│   └── deprem.dart               Veri modeli + iki farklı JSON çözümleyici
 ├── services/
-│   └── deprem_servisi.dart       AFAD ve Kandilli API istekleri
+│   ├── deprem_servisi.dart       AFAD ve Kandilli API istekleri
+│   └── tercih_servisi.dart       Filtreleri telefonda saklama
+├── state/
+│   └── deprem_deposu.dart        Ortak durum: veri + filtreler (ChangeNotifier)
 ├── screens/
-│   ├── ana_ekran.dart            Liste + filtreler
-│   ├── detay_ekrani.dart         Tek deprem detayı + harita
-│   └── harita_ekrani.dart        Tüm depremler haritada
+│   ├── ana_kabuk.dart            Alt sekme çubuğu, sekme yönetimi
+│   ├── liste_sekmesi.dart        Arama, hızlı filtreler, liste
+│   ├── harita_sekmesi.dart       Tüm depremler haritada + seçim kartı
+│   ├── ayarlar_sekmesi.dart      Kaynak seçimi, tercihler, hakkında
+│   └── detay_ekrani.dart         Tek deprem detayı + paylaşım
 ├── widgets/
-│   └── deprem_karti.dart         Listedeki tek kart
+│   ├── deprem_karti.dart         Listedeki tek kart
+│   ├── iskelet_kart.dart         Yükleme sırasındaki parıldayan taslaklar
+│   ├── filtre_sayfasi.dart       Alttan açılan filtre paneli
+│   └── durum_gorunumu.dart       Boş / hata ekranları
 └── utils/
+    ├── tema.dart                 Renk paleti ve bileşen stilleri
     └── buyukluk_stili.dart       Büyüklüğe göre renk / etiket / boyut
 ```
 
-Bu ayrım bilinçli: **veri (model)**, **veri çekme (service)**, **görüntüleme (screen/widget)** birbirinden ayrı. Bir API değişirse sadece `services/` düzenlenir, ekranlara dokunulmaz.
+Bu ayrım bilinçli: **veri (model)**, **veri çekme (service)**, **durum (state)**, **görüntüleme (screen/widget)** birbirinden ayrı. Bir API değişirse sadece `services/` düzenlenir, ekranlara dokunulmaz.
+
+### Durum yönetimi neden ayrı bir katmanda?
+
+Üç sekme de aynı veriyi ve aynı filtreleri kullanıyor. Her sekme kendi verisini çekseydi hem gereksiz istek atılır hem de listede uygulanan filtre haritaya yansımaz, sekmeler arasında tutarsızlık olurdu.
+
+Çözüm: `DepremDeposu` adında bir `ChangeNotifier`. Tek örneği `AnaKabuk` içinde oluşturulup üç sekmeye de veriliyor. Durum değişince `notifyListeners()` çağrılıyor, ekranlar `ListenableBuilder` ile dinleyip kendini yeniliyor. Provider/Riverpod gibi bir paket kullanılmadı — Flutter'ın kendi araçları bu ölçek için yeterli.
+
+Filtreler ikiye ayrılmış durumda:
+
+- **Sunucuya giden filtreler** (kaynak, zaman aralığı, minimum büyüklük) — değişince yeniden istek atılır
+- **Cihazda uygulanan filtreler** (hızlı filtre, arama, sıralama) — anında sonuç verir, istek atmaz
+
+Bu ayrım sayesinde arama kutusuna her harf yazıldığında API'ye gidilmiyor.
 
 ---
 
@@ -164,6 +206,15 @@ Test sırasında AFAD'ın yaklaşık 22 saat gecikmeli veri yayınladığı gör
 **5. Tarih formatları farklı**
 AFAD `2026-07-25T07:40:15`, Kandilli `2026-07-25 23:49:05` gönderiyor. `DateTime.tryParse` boşluklu formatı kabul etmediği için boşluk `T` ile değiştiriliyor.
 
+**6. Kaydırıcı her harekette API'ye istek atıyordu**
+Minimum büyüklük kaydırıcısı `onChanged` ile bağlıyken parmak her kıpırdadığında yeni istek gidiyordu. Çözüm: `onChanged` sadece etiketi güncelliyor (`minBuyuklukOnizle`), asıl istek parmak kalkınca `onChangeEnd` ile atılıyor.
+
+**7. Sekme değiştirince harita sıfırlanıyordu**
+Normal bir `Navigator` yapısında sekme değişince widget yeniden oluşuyor, haritanın konumu ve listenin kaydırma yeri kayboluyordu. `IndexedStack` kullanılarak üç sekme de bellekte tutuluyor.
+
+**8. `share_plus` paketi kullanılamadı**
+Paketin güncel sürümü Flutter 3.38+ istiyor, projenin hedefinden çok yeni. Ayrıca iPad'de `sharePositionOrigin` verilmezse çökme sorunu var. Paylaşım bunun yerine `Clipboard` ile çözüldü — ek paket gerekmiyor, her platformda aynı çalışıyor.
+
 ---
 
 ## Bilinen Sınırlar
@@ -171,6 +222,8 @@ AFAD `2026-07-25T07:40:15`, Kandilli `2026-07-25 23:49:05` gönderiyor. `DateTim
 - **Saat dilimi** — İki kurumun saatleri farklı dilimlerde olabilir (UTC / TSİ). Uygulama gelen değeri olduğu gibi gösteriyor; kaynaklar arası saat farkı doğrulanmadı.
 - **Bildirim yok** — Yeni deprem olduğunda uygulama kendiliğinden haber vermiyor.
 - **Çevrimdışı çalışmıyor** — Veriler önbelleğe alınmıyor, internet yoksa liste boş kalır.
+- **Sadece koyu tema** — Açık tema seçeneği yok; uygulama koyu zemin üzerine tasarlandı.
+- **Sistem paylaşım menüsü yok** — Paylaşım panoya kopyalama ile yapılıyor (gerekçesi yukarıda).
 - **Kandilli API'si resmi değil** — Üçüncü taraf bir servis üzerinden erişiliyor, kapanma ihtimali var. AFAD ise doğrudan resmi kaynaktan.
 - **Harita kümeleme yok** — Çok sayıda deprem olduğunda işaretçiler üst üste biniyor.
 

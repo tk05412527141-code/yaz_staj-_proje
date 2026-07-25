@@ -89,4 +89,21 @@ class Deprem {
     return '${iki(tarih.day)}.${iki(tarih.month)}.${tarih.year} '
         '${iki(tarih.hour)}:${iki(tarih.minute)}';
   }
+
+  /// "38.3507, 37.8618" - kopyalanabilir koordinat metni.
+  String get koordinatMetni =>
+      '${enlem.toStringAsFixed(4)}, ${boylam.toStringAsFixed(4)}';
+
+  /// Konumu tarayicida veya harita uygulamasinda acan baglanti.
+  String get haritaBaglantisi =>
+      'https://www.openstreetmap.org/?mlat=$enlem&mlon=$boylam#map=10/$enlem/$boylam';
+
+  /// Paylasilmaya / kopyalanmaya hazir ozet metin.
+  String get paylasimMetni => '''
+$yer
+Büyüklük: ${buyukluk.toStringAsFixed(1)} · Derinlik: ${derinlik.toStringAsFixed(1)} km
+Tarih: $tarihMetni
+Konum: $koordinatMetni
+Kaynak: $kaynak
+$haritaBaglantisi''';
 }

@@ -10,14 +10,20 @@ dependencies:
   flutter:
     sdk: flutter
 
+  # NOT: Surum alt sinirlari bilerek genis tutuldu. Boylece pub, senin
+  # Flutter surumunle uyumlu en uygun surumu kendisi secebilir.
+
   # HTTP istekleri (API'den veri cekmek icin)
-  http: ^1.5.0
+  http: ^1.2.0
 
   # Harita - OpenStreetMap kullanir, API anahtari GEREKTIRMEZ
-  flutter_map: ^8.3.0
+  flutter_map: ^8.0.0
 
   # Enlem/boylam veri tipi (flutter_map ile birlikte kullanilir)
   latlong2: ^0.9.1
+
+  # Kullanici tercihlerini telefonda saklamak icin
+  shared_preferences: ^2.3.0
 
 dev_dependencies:
   flutter_test:
