@@ -64,7 +64,7 @@ Bu depo sadece `lib/` klasörünü ve `pubspec.yaml`'ı içeriyor. Platform klas
 cd yaz_stajı_proje
 
 # Platform klasörlerini oluştur (lib/ ve pubspec.yaml'a dokunmaz)
-flutter create .
+flutter create --project-name deprem_takip --org com.tunakilic --platforms=ios,android .
 
 # Paketleri indir
 flutter pub get

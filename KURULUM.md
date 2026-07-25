@@ -1,6 +1,47 @@
 # Kurulum Rehberi (macOS)
 
-Bu dosya Flutter'ı sıfırdan kurup uygulamayı emülatörde çalıştırmayı anlatıyor.
+Bu dosya Flutter'ı sıfırdan kurup uygulamayı çalıştırmayı anlatıyor.
+
+## Hızlı yol: iOS Simulator
+
+Mac kullanıyorsan en kolay yol **iPhone simülatörü** — Android Studio ve emülatör kurmana gerek kalmaz.
+
+Klasördeki **`calistir-ios.command`** dosyasına çift tıkla. Script Flutter, Xcode ve CocoaPods'u kontrol eder, eksik varsa ne yapman gerektiğini söyler, her şey hazırsa uygulamayı simülatörde açar.
+
+> macOS ilk seferde "geliştirici doğrulanamadı" diyebilir. Dosyaya **sağ tık → Aç → Aç** de. Bir kez yeterli.
+
+**Gerekenler:**
+
+| Araç | Kurulum |
+|---|---|
+| Xcode | App Store'dan (~10 GB). Kurduktan sonra **bir kez aç** ve lisansı kabul et. |
+| Flutter | `brew install --cask flutter` |
+| CocoaPods | `brew install cocoapods` |
+
+Xcode kurduktan sonra bir kez şunları çalıştır:
+
+```bash
+sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+sudo xcodebuild -runFirstLaunch
+```
+
+**iOS'ta internet izni gerekmez** — o adım (aşağıdaki Adım 6) sadece Android için.
+
+### Klasör adı hakkında
+
+Bu klasörün adı `yaz_stajı_proje` ve içinde **ı** harfi var. Dart paket adları sadece `a-z`, `0-9` ve `_` içerebilir, bu yüzden düz `flutter create .` komutu hata verir. Script bunu şu şekilde aşıyor:
+
+```bash
+flutter create --project-name deprem_takip --org com.tunakilic --platforms=ios,android .
+```
+
+Elle çalıştıracaksan sen de bu komutu kullan, `flutter create .` değil.
+
+---
+
+## Ayrıntılı yol: Android emülatörü
+
+Aşağısı Android üzerinden gitmek istersen geçerli.
 
 > **Süre beklentisi:** İyi giderse 1.5-2 saat. İnternetin yavaşsa daha uzun. Toplam ~10 GB indirme var. Bu normal — Gün 1'in tamamı buna ayrılmış durumda, geride kalmış hissetme.
 
@@ -75,7 +116,9 @@ Emülatörün açılması ilk seferde 1-2 dakika sürebilir.
 cd ~/Documents/GitHub/yaz_stajı_proje
 
 # Platform klasörlerini üret (lib/ ve pubspec.yaml'a DOKUNMAZ)
-flutter create .
+# --project-name ZORUNLU: klasör adındaki "ı" harfi geçerli bir
+# Dart paket adı olmadığı için düz "flutter create ." hata verir.
+flutter create --project-name deprem_takip --org com.tunakilic --platforms=ios,android .
 
 # Paketleri indir
 flutter pub get
