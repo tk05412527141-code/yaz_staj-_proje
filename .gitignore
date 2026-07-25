@@ -24,4 +24,10 @@ ios/Pods/
 ios/.symlinks/
 ios/Flutter/Flutter.framework
 ios/Flutter/Flutter.podspec
+ios/Flutter/ephemeral/
 **/.DS_Store
+
+# Xcode kisisel ayarlari - kullaniciya ozel, depoya girmemeli
+**/xcuserdata/
+**/*.xcuserstate
+**/*.xcscmblueprint
