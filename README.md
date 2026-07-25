@@ -8,6 +8,7 @@ Liste görünümü, harita üzerinde işaretçiler, büyüklük/tarih/konum filt
 
 ## Özellikler
 
+- **Özel uygulama ikonu ve animasyonlu açılış** — logo belirirken çevresinden sismik halkalar yayılır; yerel açılış ekranı da aynı koyu zeminde, beyaz parlama yok
 - **Yerlerim ve hissedilirlik tahmini** — ev, iş, ailenin evi gibi yerleri kaydedersin; her deprem için o noktalarda ne kadar hissedileceği tahmin edilir. "4.1" yerine **"Evinizden 340 km — hissetmeyeceksiniz"**.
 - **İlk açılış tanıtımı** — üç ekranda uygulamanın neden farklı olduğu anlatılır ve kullanıcı ilk yerini ekleyerek başlar
 - **Kişisel durum kartı** — listenin en üstünde: *"Yerleriniz sakin — son 24 saatte hissedilmesi beklenen deprem yok"*
@@ -118,6 +119,10 @@ Kayıtlı konumlar **yalnızca telefonda** saklanıyor. Hiçbir sunucuya gönder
 
 **Erişilebilirlik baştan.** Büyüklük yalnızca renkle değil sayıyla da kodlanıyor (harita işaretçileri dahil) — renk körlüğü olan kullanıcı bilgi kaybetmiyor. Kartlar tek bir Semantics düğümü olarak anlamlı bir cümle okunuyor, parça parça değil. Rozetlerdeki sayılar FittedBox içinde, büyük yazı tipi ayarında taşmıyor. Dokunma hedefleri en az 48×48.
 
+**Açılış animasyonu görsel dili sürdürüyor.** Logodaki sismik halkalar sabit bir görüntü; animasyonda bu halkaları logonun dışına doğru yayılan canlı halkalarla sürdürüyoruz. Logo hâlâ titriyormuş gibi duruyor. Animasyon ~2.2 saniye ve bu süre boşa gitmiyor — arka planda tercihler okunup veri çekiliyor, kullanıcı ekranı izlerken liste hazırlanıyor.
+
+**Beyaz parlama yok.** İşletim sisteminin gösterdiği yerel açılış ekranı (Android `launch_background.xml`, iOS `LaunchScreen.storyboard`) varsayılan olarak beyazdı. Koyu bir uygulamada bu, her açılışta göz alan bir parlama demek. Her ikisinin zemini de logonun kendi zemin rengiyle (`#0B131B`) eşitlendi; yerelden Flutter'a geçiş dikişsiz.
+
 **Dokunsal geri bildirim.** Filtre seçimi, sekme değişimi, yenileme ve konum kaydetme anlarında farklı şiddetlerde titreşim. Bilinçli fark edilmiyor ama "pahalı uygulama" hissinin kaynaklarından.
 
 **Boş ekranlar yol gösteriyor.** Her boş/hata ekranı üç soruya cevap veriyor: ne oldu, neden oldu, şimdi ne yapabilirim. Bu yüzden hepsinde bir eylem butonu var — hata durumunda "diğer kaynağı dene" gibi.
@@ -191,6 +196,7 @@ lib/
 │   ├── liste_sekmesi.dart        Arama, hızlı filtreler, liste
 │   ├── harita_sekmesi.dart       Tüm depremler haritada + seçim kartı
 │   ├── ayarlar_sekmesi.dart      Kaynak seçimi, tercihler, hakkında
+│   ├── acilis_ekrani.dart        Animasyonlu giriş ekranı
 │   ├── tanitim_ekrani.dart       İlk açılış tanıtımı (3 ekran)
 │   ├── yerlerim_ekrani.dart      Kayıtlı yerlerin listesi
 │   ├── konum_ekle_ekrani.dart    Şehirden veya haritadan yer seçme
@@ -324,6 +330,20 @@ flutter test
 | `test/gun_gruplama_test.dart` | Gün gruplama: gece yarısı sınırı, yıl geçişi, boş liste, başlık metinleri, kayıt kaybolmaması |
 
 Arayüz yerine bu iki katman test ediliyor çünkü projenin hataya en açık ve en kritik kısmı burası — üstelik internet gerektirmeden çalışıyorlar.
+
+---
+
+## Uygulama İkonu ve Açılış
+
+İkon setleri kaynak görselden programatik olarak üretildi (`assets/logo.png`, 512×512):
+
+| Platform | Üretilen |
+|---|---|
+| iOS | 15 boyut + `Contents.json` (20pt–1024pt). Şeffaflık yok, köşe yuvarlatması yok — sistem kendi maskesini uygular. |
+| Android klasik | 5 yoğunlukta `ic_launcher.png` ve yuvarlak maskeli `ic_launcher_round.png` (48–192 px) |
+| Android uyarlanabilir | 5 yoğunlukta `ic_launcher_foreground.png` + `ic_launcher_background` renk kaynağı. İçerik %64'e ölçeklenip ortalandı; sistem daire/kare/damla maskesi uyguladığında kırpılmıyor. |
+
+**Kaynak görselde bir sorun vardı:** ikon yuvarlatılmış kare olarak tasarlanmıştı ve köşelerin dışı beyazdı. iOS kendi maskesini uyguladığı için bu beyaz kenar görünür kalırdı. Köşelerden flood fill ile beyaz alan ikonun kendi zemin rengiyle dolduruldu — evin beyazına dokunulmadan, çünkü ev dış beyaz bölgeye bağlı değil.
 
 ---
 

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Uyarlanabilir ikonun arka plan rengi -->
+    <color name="ic_launcher_background">#0B131B</color>
+    <!-- Acilis ekrani zemini: uygulamanin kendi zeminiyle ayni olmali,
+         aksi halde acilista beyaz bir parlama gorunur -->
+    <color name="acilis_zemin">#0B131B</color>
+</resources>

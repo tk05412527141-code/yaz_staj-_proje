@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../services/tercih_servisi.dart';
 import '../state/deprem_deposu.dart';
+import 'acilis_ekrani.dart';
 import 'ayarlar_sekmesi.dart';
 import 'harita_sekmesi.dart';
 import 'liste_sekmesi.dart';
@@ -32,6 +33,9 @@ class _AnaKabukState extends State<AnaKabuk> {
   /// null = henuz bilinmiyor (tercihler okunuyor)
   bool? _tanitimGerekli;
 
+  /// Acilis animasyonu bitti mi?
+  bool _acilisBitti = false;
+
   @override
   void initState() {
     super.initState();
@@ -39,8 +43,9 @@ class _AnaKabukState extends State<AnaKabuk> {
   }
 
   Future<void> _baslat() async {
-    // Tanitim kontrolu ile veri cekmeyi ayni anda baslatiyoruz;
-    // kullanici tanitimi bitirdiginde liste hazir olsun.
+    // Acilis animasyonu oynarken tercihleri okuyup veriyi cekiyoruz.
+    // Boylece animasyon "bosa gecen zaman" olmuyor; kullanici ekrani
+    // izlerken liste arka planda hazirlaniyor.
     final goruldu = await TercihServisi.tanitimGoruldu();
     if (!mounted) return;
     setState(() => _tanitimGerekli = !goruldu);
@@ -62,17 +67,13 @@ class _AnaKabukState extends State<AnaKabuk> {
 
   @override
   Widget build(BuildContext context) {
-    // Tercihler okunana kadar kisa bir bekleme ekrani.
-    // Tanitim gerekiyorsa listenin bir an gorunup kaybolmasini onler.
-    if (_tanitimGerekli == null) {
-      return const Scaffold(
-        body: Center(
-          child: SizedBox(
-            width: 26,
-            height: 26,
-            child: CircularProgressIndicator(strokeWidth: 2.4),
-          ),
-        ),
+    // Once acilis animasyonu. Animasyon suresi boyunca veri cekimi
+    // arka planda devam ediyor.
+    if (!_acilisBitti || _tanitimGerekli == null) {
+      return AcilisEkrani(
+        onTamamlandi: () {
+          if (mounted) setState(() => _acilisBitti = true);
+        },
       );
     }
 
