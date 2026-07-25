@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
@@ -76,7 +77,10 @@ class _HaritaSekmesiState extends State<HaritaSekmesi> {
                     _yuvarlakButon(
                       Icons.my_location,
                       'Türkiye görünümüne dön',
-                      () => _haritaKontrolcu.move(_merkez, _baslangicYakinlik),
+                      () {
+                        HapticFeedback.lightImpact();
+                        _haritaKontrolcu.move(_merkez, _baslangicYakinlik);
+                      },
                     ),
                   ],
                 ),
@@ -112,28 +116,46 @@ class _HaritaSekmesiState extends State<HaritaSekmesi> {
         point: LatLng(d.enlem, d.boylam),
         width: boyut,
         height: boyut,
-        child: GestureDetector(
-          onTap: () => setState(() => _secili = d),
-          child: Container(
-            decoration: BoxDecoration(
-              color: renk.withValues(alpha: seciliMi ? 0.95 : 0.62),
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: seciliMi ? Colors.white : Colors.white70,
-                width: seciliMi ? 3 : 1.5,
+        child: Semantics(
+          button: true,
+          selected: seciliMi,
+          label: 'Büyüklük ${d.buyukluk.toStringAsFixed(1)}, ${d.yer}, '
+              '${d.gecenSure}',
+          child: ExcludeSemantics(
+            child: GestureDetector(
+              onTap: () {
+                HapticFeedback.selectionClick();
+                setState(() => _secili = d);
+              },
+              child: Container(
+                decoration: BoxDecoration(
+                  color: renk.withValues(alpha: seciliMi ? 0.95 : 0.62),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: seciliMi ? Colors.white : Colors.white70,
+                    width: seciliMi ? 3 : 1.5,
+                  ),
+                ),
+                alignment: Alignment.center,
+                // Buyuklugu yalnizca renkle degil sayiyla da gosteriyoruz;
+                // renk korlugu olan kullanici bilgiyi kaybetmesin.
+                // Kucuk isaretcilerde sayi sigmadigi icin FittedBox var.
+                child: Padding(
+                  padding: const EdgeInsets.all(2),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      d.buyukluk.toStringAsFixed(1),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ),
-            alignment: Alignment.center,
-            child: boyut >= 30
-                ? Text(
-                    d.buyukluk.toStringAsFixed(1),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  )
-                : null,
           ),
         ),
       );

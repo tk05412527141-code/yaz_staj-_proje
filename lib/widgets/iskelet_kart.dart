@@ -18,11 +18,20 @@ class IskeletListe extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView.builder(
-      physics: const NeverScrollableScrollPhysics(),
-      padding: const EdgeInsets.only(top: 4, bottom: 16),
-      itemCount: adet,
-      itemBuilder: (_, __) => const _IskeletKart(),
+    // ExcludeSemantics: bu kartlar bos yer tutuculardir, icerikleri yoktur.
+    // Ekran okuyucu bunlari okumaya calisirsa kullanici anlamsiz bir
+    // listeyle karsilasir. Yukleme durumunu tek bir etiketle bildiriyoruz.
+    return Semantics(
+      liveRegion: true,
+      label: 'Depremler yükleniyor',
+      child: ExcludeSemantics(
+        child: ListView.builder(
+          physics: const NeverScrollableScrollPhysics(),
+          padding: const EdgeInsets.only(top: 4, bottom: 16),
+          itemCount: adet,
+          itemBuilder: (_, __) => const _IskeletKart(),
+        ),
+      ),
     );
   }
 }

@@ -14,6 +14,14 @@ import '../utils/tema.dart';
 ///
 /// Kullanici bir yer kaydettiyse en altta "Evinizden 340 km · hissedilmez"
 /// satiri cikiyor. Asil deger burada: ham buyukluk degil, kisisel etki.
+///
+/// ERISILEBILIRLIK
+///   - Buyukluk yalnizca renkle degil, SAYIYLA da gosteriliyor; renk
+///     korlugu olan kullanici bilgiyi kaybetmiyor.
+///   - Tum kart tek bir Semantics dugumu; ekran okuyucu parca parca
+///     degil, anlamli bir cumle okuyor.
+///   - Rozet icindeki sayi FittedBox icinde; buyuk yazi tipi ayarinda
+///     tasma olmuyor.
 class DepremKarti extends StatelessWidget {
   final Deprem deprem;
   final VoidCallback onTap;
@@ -29,53 +37,83 @@ class DepremKarti extends StatelessWidget {
     this.etki,
   });
 
+  /// Detay ekranindaki buyuk sayiyla eslesen Hero etiketi.
+  static String heroEtiketi(Deprem d) =>
+      'buyukluk-${d.kaynak}-${d.id}-${d.tarih.millisecondsSinceEpoch}';
+
+  /// Ekran okuyucunun okuyacagi tek cumle.
+  String _semantikEtiket() {
+    final parcalar = <String>[
+      'Büyüklük ${deprem.buyukluk.toStringAsFixed(1)}',
+      BuyuklukStili.etiket(deprem.buyukluk),
+      deprem.yer,
+      deprem.gecenSure,
+      'derinlik ${deprem.derinlik.toStringAsFixed(0)} kilometre',
+    ];
+    final e = etki;
+    if (e != null) {
+      parcalar.add(
+        '${e.konum.ad} konumundan ${e.sonuc.mesafeMetni} uzaklıkta, '
+        '${e.sonuc.seviye.etiket}',
+      );
+    }
+    return parcalar.join(', ');
+  }
+
   @override
   Widget build(BuildContext context) {
     final renk = BuyuklukStili.renk(deprem.buyukluk);
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      child: Material(
-        color: Renkler.yuzey,
-        borderRadius: BorderRadius.circular(16),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: onTap,
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Renkler.kenarlik),
-            ),
-            child: IntrinsicHeight(
-              child: Row(
-                children: [
-                  // Sol kenardaki renkli serit - listede tarama kolayligi saglar
-                  Container(width: 4, color: renk),
+    return Semantics(
+      button: true,
+      label: _semantikEtiket(),
+      onTapHint: 'detayları aç',
+      child: ExcludeSemantics(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          child: Material(
+            color: Renkler.yuzey,
+            borderRadius: BorderRadius.circular(16),
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTap: onTap,
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Renkler.kenarlik),
+                ),
+                child: IntrinsicHeight(
+                  child: Row(
+                    children: [
+                      // Sol kenardaki renkli serit - listeyi hizli taramayi saglar
+                      Container(width: 4, color: renk),
 
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _buyuklukRozeti(renk),
-                              const SizedBox(width: 14),
-                              Expanded(child: _bilgiSutunu(context)),
-                              const Icon(
-                                Icons.chevron_right,
-                                size: 20,
-                                color: Renkler.metinSolgun,
+                              Row(
+                                children: [
+                                  _buyuklukRozeti(renk),
+                                  const SizedBox(width: 14),
+                                  Expanded(child: _bilgiSutunu(context)),
+                                  const Icon(
+                                    Icons.chevron_right,
+                                    size: 20,
+                                    color: Renkler.metinSolgun,
+                                  ),
+                                ],
                               ),
+                              if (etki != null) _etkiSatiri(etki!),
                             ],
                           ),
-                          if (etki != null) _etkiSatiri(etki!),
-                        ],
+                        ),
                       ),
-                    ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
           ),
@@ -85,6 +123,19 @@ class DepremKarti extends StatelessWidget {
   }
 
   Widget _buyuklukRozeti(Color renk) {
+    return Hero(
+      tag: heroEtiketi(deprem),
+      // Ucus sirasinda Material olmayan bir agacta metin altini cizili
+      // gorunebilir; bunu engellemek icin saydam Material sariyoruz.
+      flightShuttleBuilder: (_, __, ___, ____, _____) => Material(
+        type: MaterialType.transparency,
+        child: _rozetIcerigi(renk),
+      ),
+      child: _rozetIcerigi(renk),
+    );
+  }
+
+  Widget _rozetIcerigi(Color renk) {
     return Container(
       width: 54,
       height: 54,
@@ -93,17 +144,24 @@ class DepremKarti extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: renk.withValues(alpha: 0.45)),
       ),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(
-            deprem.buyukluk.toStringAsFixed(1),
-            style: TextStyle(
-              color: renk,
-              fontSize: 21,
-              fontWeight: FontWeight.w800,
-              height: 1.0,
-              letterSpacing: -0.5,
+          // FittedBox: cihazda yazi boyutu buyutulmusse tasma olmaz
+          Flexible(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                deprem.buyukluk.toStringAsFixed(1),
+                style: TextStyle(
+                  color: renk,
+                  fontSize: 21,
+                  fontWeight: FontWeight.w800,
+                  height: 1.0,
+                  letterSpacing: -0.5,
+                ),
+              ),
             ),
           ),
           const SizedBox(height: 2),
@@ -151,12 +209,16 @@ class DepremKarti extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            Text(
-              e.sonuc.seviye.etiket,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color: e.sonuc.seviye.renk,
+            Flexible(
+              child: Text(
+                e.sonuc.seviye.etiket,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: e.sonuc.seviye.renk,
+                ),
               ),
             ),
           ],
@@ -182,29 +244,31 @@ class DepremKarti extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 6),
-        Row(
+        // Wrap: buyuk yazi tipinde alt alta gecer, tasma olmaz
+        Wrap(
+          spacing: 12,
+          runSpacing: 3,
           children: [
-            const Icon(Icons.schedule, size: 13, color: Renkler.metinSolgun),
-            const SizedBox(width: 4),
-            Text(
-              deprem.gecenSure,
-              style: const TextStyle(
-                fontSize: 12.5,
-                color: Renkler.metinSolgun,
-              ),
-            ),
-            const SizedBox(width: 12),
-            const Icon(Icons.arrow_downward,
-                size: 13, color: Renkler.metinSolgun),
-            const SizedBox(width: 3),
-            Text(
+            _kucukBilgi(Icons.schedule, deprem.gecenSure),
+            _kucukBilgi(
+              Icons.arrow_downward,
               '${deprem.derinlik.toStringAsFixed(1)} km',
-              style: const TextStyle(
-                fontSize: 12.5,
-                color: Renkler.metinSolgun,
-              ),
             ),
           ],
+        ),
+      ],
+    );
+  }
+
+  Widget _kucukBilgi(IconData ikon, String yazi) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(ikon, size: 13, color: Renkler.metinSolgun),
+        const SizedBox(width: 4),
+        Text(
+          yazi,
+          style: const TextStyle(fontSize: 12.5, color: Renkler.metinSolgun),
         ),
       ],
     );

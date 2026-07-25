@@ -9,6 +9,10 @@ Liste görünümü, harita üzerinde işaretçiler, büyüklük/tarih/konum filt
 ## Özellikler
 
 - **Yerlerim ve hissedilirlik tahmini** — ev, iş, ailenin evi gibi yerleri kaydedersin; her deprem için o noktalarda ne kadar hissedileceği tahmin edilir. "4.1" yerine **"Evinizden 340 km — hissetmeyeceksiniz"**.
+- **İlk açılış tanıtımı** — üç ekranda uygulamanın neden farklı olduğu anlatılır ve kullanıcı ilk yerini ekleyerek başlar
+- **Kişisel durum kartı** — listenin en üstünde: *"Yerleriniz sakin — son 24 saatte hissedilmesi beklenen deprem yok"*
+- **Günlere ayrılmış liste** — kaydırırken üste yapışan "Bugün / Dün / 20 Temmuz" başlıkları
+- **Erişilebilirlik** — ekran okuyucu etiketleri, renge ek olarak sayıyla kodlama, büyük yazı tipine uyum, 48×48 dokunma hedefleri
 - **Üç sekmeli yapı** — Liste, Harita ve Ayarlar. Alt sekme çubuğu ile tek elle erişilebilir.
 - **İki veri kaynağı** — AFAD ve Kandilli arasında geçiş yapılabilir. Biri gecikirse veya erişilemezse diğerine geçerek uygulama çalışmaya devam eder.
 - **Tek dokunuşluk hızlı filtreler** — Tümü / Yerlerim / Son 1 saat / Bugün / Hissedilenler 3.0+ / Güçlü 4.5+
@@ -17,7 +21,7 @@ Liste görünümü, harita üzerinde işaretçiler, büyüklük/tarih/konum filt
 - **İskelet yükleme** — boş ekran yerine parıldayan kart taslakları; bekleme daha kısa hissettirir
 - **Etkileşimli harita** — işaretçiye dokununca alttan özet kart çıkar, oradan detaya geçilir
 - **Paylaş ve kopyala** — deprem bilgisi, koordinatlar veya harita bağlantısı panoya kopyalanabilir
-- **Aşağı çekerek yenileme**, yumuşak geçişler ve yol gösteren hata/boş ekranlar
+- **Aşağı çekerek yenileme**, Hero geçişi, dokunsal geri bildirim ve yol gösteren hata/boş ekranlar
 
 **API anahtarı gerekmez.** Hem deprem verileri hem de harita (OpenStreetMap) tamamen ücretsiz ve açık kaynaklıdır.
 
@@ -32,18 +36,23 @@ Liste görünümü, harita üzerinde işaretçiler, büyüklük/tarih/konum filt
 │ ┌────────────────┐ ┌───┐ │   │          4.1             │
 │ │🔍 Şehir ara    │ │ ⚙②│ │   │       HİSSEDİLİR         │
 │ └────────────────┘ └───┘ │   ├──────────────────────────┤
-│ [Tümü][Son 1s][Bugün][3+]│   │ ┌─────────┐ ┌──────────┐ │
+│ [Tümü][📍Yerlerim][Bugün]│   │ ┌─────────┐ ┌──────────┐ │
 ├──────────────────────────┤   │ │BÜYÜKLÜK │ │ DERİNLİK │ │
-│ 128 deprem · en büyük 5.2│   │ │  4.1    │ │  11.5    │ │
-├──────────────────────────┤   │ └─────────┘ └──────────┘ │
-│ ▌┌───┐ Akçadağ (Malatya) │   │ ┌──────────────────────┐ │
-│ ▌│4.1│ 🕐3 gün ⬇11.5km › │──▶│ │      HARİTA          │ │
-│ ▌│ M │                   │   │ └──────────────────────┘ │
-│ ▌└───┘                   │   │ 📍 Konum · 🕐 Tarih      │
-│ ▌┌───┐ Ege Denizi        │   │ 🎯 Koordinat · ✓ Kaynak  │
-│ ▌│3.9│ 🕐2 gün ⬇13.4km › │   │ [Bilgileri] [Koordinat]  │
-├──────────────────────────┤   │ [ kopyala ] [ kopyala  ] │
-│  ▣ Liste  🗺 Harita  ⚙   │   └──────────────────────────┘
+│ ┌──────────────────────┐ │   │ │  4.1    │ │  11.5    │ │
+│ │ ✓ Yerleriniz sakin   │ │   │ └─────────┘ └──────────┘ │
+│ │   Son 24 saatte yok  │ │   ├──────────────────────────┤
+│ └──────────────────────┘ │   │ YERLERİNİZDE             │
+│ 128 deprem · en büyük 5.2│   │ 🏠 Evim  340km hissedilmez│
+├─ Bugün  12 ──────────────┤   │ 💼 Ofis  355km hissedilmez│
+│ ▌┌───┐ Akçadağ (Malatya) │──▶├──────────────────────────┤
+│ ▌│4.1│ 🕐3sa ⬇11.5km   › │   │ ┌──────────────────────┐ │
+│ ▌│ M │ 🏠 Evim·340km    │   │ │      HARİTA          │ │
+│ ▌└───┘    Hissedilmez    │   │ └──────────────────────┘ │
+├─ Dün  8 ─────────────────┤   │ 📍 Konum · 🕐 Tarih      │
+│ ▌┌───┐ Ege Denizi        │   │ [Bilgileri] [Koordinat]  │
+│ ▌│3.9│ 🕐2 gün ⬇13.4km › │   │ [ kopyala ] [ kopyala  ] │
+├──────────────────────────┤   └──────────────────────────┘
+│  ▣ Liste  🗺 Harita  ⚙   │
 └──────────────────────────┘
 ```
 
@@ -100,6 +109,16 @@ Kayıtlı konumlar **yalnızca telefonda** saklanıyor. Hiçbir sunucuya gönder
 **İskelet yükleme.** Dönen çark yerine kart taslakları gösteriliyor. Kullanıcı ne geleceğini gördüğü için bekleme daha kısa hissediliyor, ekran dolduğunda sıçrama olmuyor.
 
 **Filtre rozeti.** Kaç filtre aktifse filtre butonunda sayı olarak görünüyor — kullanıcı "neden az sonuç var?" sorusunun cevabını arayüzde görüyor.
+
+**Değer ilk 30 saniyede görünüyor.** Uygulamanın en iyi özelliği (hissedilirlik tahmini) eskiden ayarların içinde saklıydı. Görünmeyen özellik, olmayan özellikle aynı şeydir. Artık ilk açılışta üç ekranlık bir tanıtım problemi anlatıyor ve kullanıcıyı ilk yerini eklemeye yönlendiriyor — atlanabilir tutuldu, zorunlu onboarding kullanıcı kaçırır.
+
+**Cevap en üstte.** İnsanın bu uygulamayı açma sebebi tek bir soru: "son 24 saatte benim yerlerimde bir şey oldu mu?" Durum kartı bu cevabı listenin en üstüne koyuyor; kullanıcı 200 kart taramak zorunda kalmıyor. Üç hâli var: yer yok (ekleme çağrısı), sakin (yeşil onay), sarsıntı var (en güçlüsünün özeti).
+
+**Gün başlıkları.** Düz bir liste zaman algısını kaybettiriyordu. Yapışkan "Bugün / Dün / 20 Temmuz" başlıkları listeyi taranabilir kılıyor. Büyüklüğe göre sıralamada gruplama anlamsızlaştığı için otomatik olarak düz listeye dönülüyor.
+
+**Erişilebilirlik baştan.** Büyüklük yalnızca renkle değil sayıyla da kodlanıyor (harita işaretçileri dahil) — renk körlüğü olan kullanıcı bilgi kaybetmiyor. Kartlar tek bir Semantics düğümü olarak anlamlı bir cümle okunuyor, parça parça değil. Rozetlerdeki sayılar FittedBox içinde, büyük yazı tipi ayarında taşmıyor. Dokunma hedefleri en az 48×48.
+
+**Dokunsal geri bildirim.** Filtre seçimi, sekme değişimi, yenileme ve konum kaydetme anlarında farklı şiddetlerde titreşim. Bilinçli fark edilmiyor ama "pahalı uygulama" hissinin kaynaklarından.
 
 **Boş ekranlar yol gösteriyor.** Her boş/hata ekranı üç soruya cevap veriyor: ne oldu, neden oldu, şimdi ne yapabilirim. Bu yüzden hepsinde bir eylem butonu var — hata durumunda "diğer kaynağı dene" gibi.
 
@@ -172,11 +191,13 @@ lib/
 │   ├── liste_sekmesi.dart        Arama, hızlı filtreler, liste
 │   ├── harita_sekmesi.dart       Tüm depremler haritada + seçim kartı
 │   ├── ayarlar_sekmesi.dart      Kaynak seçimi, tercihler, hakkında
+│   ├── tanitim_ekrani.dart       İlk açılış tanıtımı (3 ekran)
 │   ├── yerlerim_ekrani.dart      Kayıtlı yerlerin listesi
 │   ├── konum_ekle_ekrani.dart    Şehirden veya haritadan yer seçme
 │   └── detay_ekrani.dart         Detay + yerlerdeki etki + paylaşım
 ├── widgets/
 │   ├── deprem_karti.dart         Listedeki tek kart
+│   ├── durum_karti.dart          Listenin üstündeki kişisel özet
 │   ├── iskelet_kart.dart         Yükleme sırasındaki parıldayan taslaklar
 │   ├── filtre_sayfasi.dart       Alttan açılan filtre paneli
 │   └── durum_gorunumu.dart       Boş / hata ekranları
@@ -184,6 +205,7 @@ lib/
     ├── tema.dart                 Renk paleti ve bileşen stilleri
     ├── buyukluk_stili.dart       Büyüklüğe göre renk / etiket / boyut
     ├── siddet_hesabi.dart        Mesafe + tahmini sarsıntı şiddeti
+    ├── gun_gruplama.dart         Listeyi günlere ayırma, başlık metinleri
     └── sehirler.dart             81 il koordinatı, konum simgeleri
 ```
 
@@ -293,12 +315,13 @@ Paketin güncel sürümü Flutter 3.38+ istiyor, projenin hedefinden çok yeni. 
 flutter test
 ```
 
-35 birim testi çalışıyor:
+49 birim testi çalışıyor:
 
 | Dosya | Kapsam |
 |---|---|
 | `test/widget_test.dart` | JSON çözümleme: AFAD'ın metin sayıları, Kandilli'nin GeoJSON koordinat sırası, bozuk/eksik veri dayanıklılığı |
 | `test/siddet_hesabi_test.dart` | Haversine mesafesi, bilinen deprem senaryoları, monotonluk (mesafe ↑ → şiddet ↓), sınır durumları, geçerlilik bayrağı |
+| `test/gun_gruplama_test.dart` | Gün gruplama: gece yarısı sınırı, yıl geçişi, boş liste, başlık metinleri, kayıt kaybolmaması |
 
 Arayüz yerine bu iki katman test ediliyor çünkü projenin hataya en açık ve en kritik kısmı burası — üstelik internet gerektirmeden çalışıyorlar.
 

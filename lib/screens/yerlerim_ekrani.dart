@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../models/kayitli_konum.dart';
 import '../state/deprem_deposu.dart';
@@ -232,6 +233,7 @@ class YerlerimEkrani extends StatelessWidget {
 
     if (sonuc == null) return;
 
+    HapticFeedback.mediumImpact();
     if (duzenlenen == null) {
       await depo.konumEkle(sonuc);
     } else {
@@ -259,6 +261,9 @@ class YerlerimEkrani extends StatelessWidget {
       ),
     );
 
-    if (onay == true) await depo.konumSil(konum.id);
+    if (onay == true) {
+      HapticFeedback.mediumImpact();
+      await depo.konumSil(konum.id);
+    }
   }
 }

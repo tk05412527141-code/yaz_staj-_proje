@@ -14,6 +14,7 @@ class TercihServisi {
   static const _kMinBuyukluk = 'min_buyukluk';
   static const _kSiralama = 'siralama';
   static const _kKonumlar = 'kayitli_konumlar';
+  static const _kTanitimGoruldu = 'tanitim_goruldu';
 
   /// Kayitli tercihleri okur. Hic kayit yoksa bos map doner.
   ///
@@ -86,6 +87,38 @@ class TercihServisi {
     try {
       final p = await SharedPreferences.getInstance();
       await p.setString(_kKonumlar, kodlanmis);
+    } catch (_) {}
+  }
+
+  // ------------------------------------------------------------------
+  // Ilk acilis tanitimi
+  // ------------------------------------------------------------------
+
+  /// Kullanici tanitim ekranlarini daha once gordu mu?
+  ///
+  /// Okuma basarisiz olursa "gordu" kabul ediyoruz; boylece bir hata
+  /// yuzunden kullanici her acilista tanitimla karsilasmaz.
+  static Future<bool> tanitimGoruldu() async {
+    try {
+      final p = await SharedPreferences.getInstance();
+      return p.getBool(_kTanitimGoruldu) ?? false;
+    } catch (_) {
+      return true;
+    }
+  }
+
+  static Future<void> tanitimiIsaretle() async {
+    try {
+      final p = await SharedPreferences.getInstance();
+      await p.setBool(_kTanitimGoruldu, true);
+    } catch (_) {}
+  }
+
+  /// Tanitimi bir sonraki acilista tekrar gostermek icin.
+  static Future<void> tanitimiSifirla() async {
+    try {
+      final p = await SharedPreferences.getInstance();
+      await p.remove(_kTanitimGoruldu);
     } catch (_) {}
   }
 

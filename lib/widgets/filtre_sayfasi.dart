@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../services/deprem_servisi.dart';
 import '../state/deprem_deposu.dart';
@@ -70,7 +71,9 @@ class FiltreSayfasi extends StatelessWidget {
                       label: Text(k.ad),
                       selected: depo.kaynak == k,
                       onSelected: (s) {
-                        if (s) depo.kaynakDegistir(k);
+                        if (!s) return;
+                        HapticFeedback.selectionClick();
+                        depo.kaynakDegistir(k);
                       },
                     );
                   }).toList(),
@@ -86,7 +89,9 @@ class FiltreSayfasi extends StatelessWidget {
                       label: Text(gun == 1 ? 'Son 24 saat' : 'Son $gun gün'),
                       selected: depo.gunSayisi == gun,
                       onSelected: (s) {
-                        if (s) depo.gunDegistir(gun);
+                        if (!s) return;
+                        HapticFeedback.selectionClick();
+                        depo.gunDegistir(gun);
                       },
                     );
                   }).toList(),
@@ -126,7 +131,10 @@ class FiltreSayfasi extends StatelessWidget {
                   // birakinca veriyi yenile. Aksi halde her piksel
                   // hareketinde API'ye istek gider.
                   onChanged: depo.minBuyuklukOnizle,
-                  onChangeEnd: depo.minBuyuklukDegistir,
+                  onChangeEnd: (deger) {
+                    HapticFeedback.selectionClick();
+                    depo.minBuyuklukDegistir(deger);
+                  },
                 ),
 
                 const SizedBox(height: 12),
@@ -138,7 +146,9 @@ class FiltreSayfasi extends StatelessWidget {
                       label: Text(s.etiket),
                       selected: depo.siralama == s,
                       onSelected: (secildi) {
-                        if (secildi) depo.siralamaDegistir(s);
+                        if (!secildi) return;
+                        HapticFeedback.selectionClick();
+                        depo.siralamaDegistir(s);
                       },
                     );
                   }).toList(),

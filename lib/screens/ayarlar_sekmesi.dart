@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../services/deprem_servisi.dart';
+import '../services/tercih_servisi.dart';
 import '../state/deprem_deposu.dart';
 import '../utils/tema.dart';
 import 'yerlerim_ekrani.dart';
@@ -195,6 +196,26 @@ class AyarlarSekmesi extends StatelessWidget {
                     _satir(Icons.info_outline, 'Uygulama', 'Deprem Takip 1.0'),
                     const Divider(),
                     _satir(Icons.public, 'Harita', 'OpenStreetMap'),
+                    const Divider(),
+                    ListTile(
+                      leading: const Icon(Icons.replay_outlined),
+                      title: const Text('Tanıtımı tekrar göster'),
+                      subtitle: const Text(
+                        'Uygulamayı bir sonraki açışında',
+                        style: TextStyle(color: Renkler.metinSolgun),
+                      ),
+                      onTap: () async {
+                        await TercihServisi.tanitimiSifirla();
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                                'Tanıtım bir sonraki açılışta gösterilecek'),
+                            duration: Duration(seconds: 3),
+                          ),
+                        );
+                      },
+                    ),
                     const Divider(),
                     ListTile(
                       leading: const Icon(Icons.link),

@@ -5,6 +5,7 @@ import 'package:latlong2/latlong.dart';
 
 import '../models/deprem.dart';
 import '../state/deprem_deposu.dart';
+import '../widgets/deprem_karti.dart';
 import '../utils/buyukluk_stili.dart';
 import '../utils/sehirler.dart';
 import '../utils/siddet_hesabi.dart';
@@ -156,15 +157,14 @@ class DetayEkrani extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(
-                deprem.buyukluk.toStringAsFixed(1),
-                style: TextStyle(
-                  fontSize: 62,
-                  fontWeight: FontWeight.w900,
-                  color: renk,
-                  height: 1.0,
-                  letterSpacing: -2,
+              // Listedeki rozetten buyuyerek gelen sayi (Hero gecisi)
+              Hero(
+                tag: DepremKarti.heroEtiketi(deprem),
+                flightShuttleBuilder: (_, __, ___, ____, _____) => Material(
+                  type: MaterialType.transparency,
+                  child: _buyukSayi(renk),
                 ),
+                child: _buyukSayi(renk),
               ),
               const SizedBox(height: 2),
               Text(
@@ -180,6 +180,21 @@ class DetayEkrani extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  /// Ust banttaki buyuk buyukluk sayisi. Hero'nun her iki ucunda da
+  /// ayni widget kullaniliyor ki gecis puruzsuz olsun.
+  Widget _buyukSayi(Color renk) {
+    return Text(
+      deprem.buyukluk.toStringAsFixed(1),
+      style: TextStyle(
+        fontSize: 62,
+        fontWeight: FontWeight.w900,
+        color: renk,
+        height: 1.0,
+        letterSpacing: -2,
       ),
     );
   }
