@@ -1,8 +1,27 @@
-venv/
-.env
-__pycache__/
-*.pyc
-chroma_db/
-belgeler/*
-!belgeler/.gitkeep
-!belgeler/ornek-butce-raporu.md
+# Flutter / Dart
+.dart_tool/
+.packages
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+pubspec.lock
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# Android
+android/.gradle/
+android/local.properties
+android/key.properties
+*.jks
+
+# iOS / macOS
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+**/.DS_Store
