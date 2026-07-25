@@ -13,6 +13,7 @@ class TercihServisi {
   static const _kGunSayisi = 'gun_sayisi';
   static const _kMinBuyukluk = 'min_buyukluk';
   static const _kSiralama = 'siralama';
+  static const _kKonumlar = 'kayitli_konumlar';
 
   /// Kayitli tercihleri okur. Hic kayit yoksa bos map doner.
   ///
@@ -65,6 +66,26 @@ class TercihServisi {
       await p.remove(_kGunSayisi);
       await p.remove(_kMinBuyukluk);
       await p.remove(_kSiralama);
+    } catch (_) {}
+  }
+
+  // ------------------------------------------------------------------
+  // Kayitli konumlar (JSON metni olarak saklanir)
+  // ------------------------------------------------------------------
+
+  static Future<String?> konumlariOku() async {
+    try {
+      final p = await SharedPreferences.getInstance();
+      return p.getString(_kKonumlar);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Future<void> konumlariKaydet(String kodlanmis) async {
+    try {
+      final p = await SharedPreferences.getInstance();
+      await p.setString(_kKonumlar, kodlanmis);
     } catch (_) {}
   }
 

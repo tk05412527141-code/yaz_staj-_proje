@@ -239,7 +239,9 @@ class _HaritaSekmesiState extends State<HaritaSekmesi> {
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => DetayEkrani(deprem: d)),
+          MaterialPageRoute(
+            builder: (_) => DetayEkrani(deprem: d, depo: widget.depo),
+          ),
         ),
         child: Container(
           decoration: BoxDecoration(

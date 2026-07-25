@@ -1,12 +1,15 @@
 import 'package:flutter/foundation.dart';
 
 import '../models/deprem.dart';
+import '../models/kayitli_konum.dart';
 import '../services/deprem_servisi.dart';
 import '../services/tercih_servisi.dart';
+import '../utils/siddet_hesabi.dart';
 
 /// Tek dokunusla uygulanan hazir filtreler.
 enum HizliFiltre {
   tumu('Tümü', null),
+  yerlerim('Yerlerim', null),
   sonSaat('Son 1 saat', null),
   bugun('Bugün', null),
   hissedilen('Hissedilenler', 3.0),
@@ -54,6 +57,9 @@ class DepremDeposu extends ChangeNotifier {
   Siralama siralama = Siralama.zaman;
   String arama = '';
 
+  // --- Kullanicinin takip ettigi yerler ---
+  List<KayitliKonum> konumlar = [];
+
   bool _tercihlerYuklendi = false;
 
   // ------------------------------------------------------------------
@@ -63,7 +69,78 @@ class DepremDeposu extends ChangeNotifier {
   /// Uygulama acilirken bir kez cagrilir: tercihleri okur, veriyi ceker.
   Future<void> baslat() async {
     await _tercihleriYukle();
+    await _konumlariYukle();
     await yenile();
+  }
+
+  // ------------------------------------------------------------------
+  // Kayitli konumlar
+  // ------------------------------------------------------------------
+
+  Future<void> _konumlariYukle() async {
+    konumlar = KayitliKonum.listeyiCoz(await TercihServisi.konumlariOku());
+  }
+
+  Future<void> _konumlariKaydet() async {
+    await TercihServisi.konumlariKaydet(KayitliKonum.listeyiKodla(konumlar));
+  }
+
+  Future<void> konumEkle(KayitliKonum konum) async {
+    konumlar = [...konumlar, konum];
+    notifyListeners();
+    await _konumlariKaydet();
+  }
+
+  Future<void> konumSil(String id) async {
+    konumlar = konumlar.where((k) => k.id != id).toList();
+    // Silinen konum son filtreyi anlamsiz birakmasin
+    if (konumlar.isEmpty && hizliFiltre == HizliFiltre.yerlerim) {
+      hizliFiltre = HizliFiltre.tumu;
+    }
+    notifyListeners();
+    await _konumlariKaydet();
+  }
+
+  Future<void> konumGuncelle(KayitliKonum yeni) async {
+    konumlar = konumlar.map((k) => k.id == yeni.id ? yeni : k).toList();
+    notifyListeners();
+    await _konumlariKaydet();
+  }
+
+  bool get konumVar => konumlar.isNotEmpty;
+
+  /// Bir depremin verilen konumda tahmini etkisi.
+  SiddetSonucu siddet(Deprem d, KayitliKonum konum) {
+    return SiddetHesabi.hesapla(
+      depremEnlem: d.enlem,
+      depremBoylam: d.boylam,
+      derinlikKm: d.derinlik,
+      buyukluk: d.buyukluk,
+      noktaEnlem: konum.enlem,
+      noktaBoylam: konum.boylam,
+    );
+  }
+
+  /// Bir depremin, kayitli konumlar arasindaki EN GUCLU etkisi.
+  ///
+  /// Kartlarda tek bir satir gosterecegimiz icin "en cok etkilenen yer"
+  /// mantiklo olan bilgi. Konum yoksa null doner.
+  ({KayitliKonum konum, SiddetSonucu sonuc})? enYakinEtki(Deprem d) {
+    if (konumlar.isEmpty) return null;
+
+    KayitliKonum? enIyiKonum;
+    SiddetSonucu? enIyiSonuc;
+
+    for (final k in konumlar) {
+      final s = siddet(d, k);
+      if (enIyiSonuc == null || s.mmi > enIyiSonuc.mmi) {
+        enIyiSonuc = s;
+        enIyiKonum = k;
+      }
+    }
+
+    if (enIyiKonum == null || enIyiSonuc == null) return null;
+    return (konum: enIyiKonum, sonuc: enIyiSonuc);
   }
 
   Future<void> _tercihleriYukle() async {
@@ -199,7 +276,11 @@ class DepremDeposu extends ChangeNotifier {
 
     final sonuc = _ham.where((d) {
       // 1) Hizli filtre
-      if (hizliFiltre == HizliFiltre.sonSaat) {
+      if (hizliFiltre == HizliFiltre.yerlerim) {
+        // Kayitli yerlerinden en az birinde hissedilmesi beklenenler
+        final etki = enYakinEtki(d);
+        if (etki == null || !etki.sonuc.seviye.hissedilir) return false;
+      } else if (hizliFiltre == HizliFiltre.sonSaat) {
         if (simdi.difference(d.tarih).inMinutes > 60) return false;
       } else if (hizliFiltre == HizliFiltre.bugun) {
         final ayniGun = d.tarih.year == simdi.year &&

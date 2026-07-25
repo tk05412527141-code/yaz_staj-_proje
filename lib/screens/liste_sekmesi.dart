@@ -9,6 +9,7 @@ import '../widgets/durum_gorunumu.dart';
 import '../widgets/filtre_sayfasi.dart';
 import '../widgets/iskelet_kart.dart';
 import 'detay_ekrani.dart';
+import 'yerlerim_ekrani.dart';
 
 /// Ana sekme: arama, hizli filtreler ve deprem listesi.
 class ListeSekmesi extends StatefulWidget {
@@ -224,12 +225,32 @@ class _ListeSekmesiState extends State<ListeSekmesi> {
           final secili = depo.hizliFiltre == f;
           final esikRengi = f.esik == null ? null : BuyuklukStili.renk(f.esik!);
 
+          // "Yerlerim" filtresi ancak kayitli bir yer varsa anlamli.
+          // Yer yoksa dokununca kullaniciyi ekleme ekranina yonlendiriyoruz.
+          final yerFiltresi = f == HizliFiltre.yerlerim;
+
           return ChoiceChip(
             selected: secili,
-            onSelected: (_) => depo.hizliFiltreDegistir(f),
+            onSelected: (_) {
+              if (yerFiltresi && !depo.konumVar) {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => YerlerimEkrani(depo: depo)),
+                );
+                return;
+              }
+              depo.hizliFiltreDegistir(f);
+            },
             label: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
+                if (yerFiltresi) ...[
+                  Icon(
+                    depo.konumVar ? Icons.place : Icons.add_location_alt_outlined,
+                    size: 14,
+                    color: secili ? Colors.white : Renkler.metinSolgun,
+                  ),
+                  const SizedBox(width: 5),
+                ],
                 if (esikRengi != null && !secili) ...[
                   Container(
                     width: 7,
@@ -375,8 +396,11 @@ class _ListeSekmesiState extends State<ListeSekmesi> {
           final deprem = liste[i];
           return DepremKarti(
             deprem: deprem,
+            etki: depo.enYakinEtki(deprem),
             onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => DetayEkrani(deprem: deprem)),
+              MaterialPageRoute(
+                builder: (_) => DetayEkrani(deprem: deprem, depo: depo),
+              ),
             ),
           );
         },

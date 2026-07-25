@@ -1,21 +1,32 @@
 import 'package:flutter/material.dart';
 
 import '../models/deprem.dart';
+import '../models/kayitli_konum.dart';
 import '../utils/buyukluk_stili.dart';
+import '../utils/sehirler.dart';
+import '../utils/siddet_hesabi.dart';
 import '../utils/tema.dart';
 
 /// Listede tek bir depremi gosteren kart.
 ///
 /// Tasarim mantigi: goz once BUYUKLUGE takilsin (sol taraftaki renkli
 /// rozet), sonra konuma, en son detaylara. Bilgi hiyerarsisi bu sirada.
+///
+/// Kullanici bir yer kaydettiyse en altta "Evinizden 340 km · hissedilmez"
+/// satiri cikiyor. Asil deger burada: ham buyukluk degil, kisisel etki.
 class DepremKarti extends StatelessWidget {
   final Deprem deprem;
   final VoidCallback onTap;
+
+  /// Kullanicinin en cok etkilenen yeri ve oradaki tahmini siddet.
+  /// Kayitli yer yoksa null.
+  final ({KayitliKonum konum, SiddetSonucu sonuc})? etki;
 
   const DepremKarti({
     super.key,
     required this.deprem,
     required this.onTap,
+    this.etki,
   });
 
   @override
@@ -44,16 +55,22 @@ class DepremKarti extends StatelessWidget {
                   Expanded(
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-                      child: Row(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buyuklukRozeti(renk),
-                          const SizedBox(width: 14),
-                          Expanded(child: _bilgiSutunu(context)),
-                          const Icon(
-                            Icons.chevron_right,
-                            size: 20,
-                            color: Renkler.metinSolgun,
+                          Row(
+                            children: [
+                              _buyuklukRozeti(renk),
+                              const SizedBox(width: 14),
+                              Expanded(child: _bilgiSutunu(context)),
+                              const Icon(
+                                Icons.chevron_right,
+                                size: 20,
+                                color: Renkler.metinSolgun,
+                              ),
+                            ],
                           ),
+                          if (etki != null) _etkiSatiri(etki!),
                         ],
                       ),
                     ),
@@ -100,6 +117,50 @@ class DepremKarti extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  /// "Evinizden 340 km · Hissedilmez" satiri.
+  Widget _etkiSatiri(({KayitliKonum konum, SiddetSonucu sonuc}) e) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 11),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: e.sonuc.seviye.renk.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              KonumSimgesi.ikon(e.konum.simge),
+              size: 14,
+              color: e.sonuc.seviye.renk,
+            ),
+            const SizedBox(width: 7),
+            Expanded(
+              child: Text(
+                '${e.konum.ad} · ${e.sonuc.mesafeMetni}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Renkler.metinSolgun,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              e.sonuc.seviye.etiket,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: e.sonuc.seviye.renk,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

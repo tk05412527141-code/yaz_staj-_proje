@@ -4,14 +4,21 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../models/deprem.dart';
+import '../state/deprem_deposu.dart';
 import '../utils/buyukluk_stili.dart';
+import '../utils/sehirler.dart';
+import '../utils/siddet_hesabi.dart';
 import '../utils/tema.dart';
 
 /// Tek bir depremin tum ayrintilarini gosteren ekran.
 class DetayEkrani extends StatelessWidget {
   final Deprem deprem;
 
-  const DetayEkrani({super.key, required this.deprem});
+  /// Kayitli yerlerdeki tahmini etkiyi hesaplamak icin.
+  /// Verilmezse "Yerlerinizde" bolumu gosterilmez.
+  final DepremDeposu? depo;
+
+  const DetayEkrani({super.key, required this.deprem, this.depo});
 
   @override
   Widget build(BuildContext context) {
@@ -79,6 +86,8 @@ class DetayEkrani extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 16),
+
+                  _yerlerinizdeBolumu(),
 
                   _haritaKarti(konum, renk),
                   const SizedBox(height: 16),
@@ -210,6 +219,160 @@ class DetayEkrani extends StatelessWidget {
           Text(
             altYazi,
             style: const TextStyle(fontSize: 12, color: Renkler.metinSolgun),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Kullanicinin kayitli yerlerindeki tahmini etki dokumu.
+  ///
+  /// Uygulamanin en degerli bolumu: "4.1" sayisi kimseye bir sey ifade
+  /// etmiyor, ama "Evinizde hafif hissedilir" ediyor.
+  Widget _yerlerinizdeBolumu() {
+    final d = depo;
+    if (d == null || d.konumlar.isEmpty) return const SizedBox.shrink();
+
+    // En cok etkilenenden en aza dogru sirala
+    final satirlar = d.konumlar
+        .map((k) => (konum: k, sonuc: d.siddet(deprem, k)))
+        .toList()
+      ..sort((a, b) => b.sonuc.mmi.compareTo(a.sonuc.mmi));
+
+    final belirsizVar = satirlar.any((s) => !s.sonuc.guvenilir);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.only(left: 4, bottom: 8),
+          child: Text(
+            'YERLERİNİZDE',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1.0,
+              color: Renkler.metinSolgun,
+            ),
+          ),
+        ),
+        Container(
+          decoration: BoxDecoration(
+            color: Renkler.yuzey,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Renkler.kenarlik),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            children: [
+              for (var i = 0; i < satirlar.length; i++) ...[
+                if (i > 0) const Divider(),
+                _yerSatiri(satirlar[i].konum.ad, satirlar[i].konum.simge,
+                    satirlar[i].sonuc),
+              ],
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(4, 8, 4, 0),
+          child: Text(
+            belirsizVar
+                ? 'Tahminler Allen ve ark. (2012) şiddet azalım modeline '
+                    'dayanır. Bu deprem modelin geçerlilik aralığının '
+                    '(M5.0+, 300 km) dışında kaldığı için tahmin belirsizdir. '
+                    'Gerçek sarsıntı zemin ve bina yapısına göre değişir.'
+                : 'Tahminler Allen ve ark. (2012) şiddet azalım modeline '
+                    'dayanır. Gerçek sarsıntı zemin yapısı, bina türü ve kat '
+                    'yüksekliğine göre değişir. Resmî bir şiddet değeri değildir.',
+            style: const TextStyle(
+              fontSize: 11,
+              height: 1.45,
+              color: Renkler.metinSolgun,
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+      ],
+    );
+  }
+
+  Widget _yerSatiri(String ad, String simge, SiddetSonucu s) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: s.seviye.renk.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(KonumSimgesi.ikon(simge),
+                size: 18, color: s.seviye.renk),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        ad,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w700,
+                          color: Renkler.metin,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      s.mesafeMetni,
+                      style: const TextStyle(
+                        fontSize: 12.5,
+                        color: Renkler.metinSolgun,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 3),
+                Row(
+                  children: [
+                    Text(
+                      s.seviye.etiket,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: s.seviye.renk,
+                      ),
+                    ),
+                    if (!s.guvenilir) ...[
+                      const SizedBox(width: 6),
+                      const Text(
+                        '(tahmini)',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Renkler.metinSolgun,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  s.seviye.aciklama,
+                  style: const TextStyle(
+                    fontSize: 11.5,
+                    height: 1.35,
+                    color: Renkler.metinSolgun,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),

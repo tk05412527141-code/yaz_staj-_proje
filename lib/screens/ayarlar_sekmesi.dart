@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../services/deprem_servisi.dart';
 import '../state/deprem_deposu.dart';
 import '../utils/tema.dart';
+import 'yerlerim_ekrani.dart';
 
 /// Ayarlar sekmesi: veri kaynagi secimi, uygulama ve kaynak bilgileri.
 class AyarlarSekmesi extends StatelessWidget {
@@ -32,6 +33,58 @@ class AyarlarSekmesi extends StatelessWidget {
               ),
               const SizedBox(height: 22),
 
+              _bolumBasligi('YERLERİM'),
+              _kutu(
+                child: ListTile(
+                  leading: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: Renkler.vurgu.withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(11),
+                    ),
+                    child: const Icon(Icons.place_outlined,
+                        size: 20, color: Renkler.vurgu),
+                  ),
+                  title: const Text(
+                    'Takip ettiğim yerler',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: Text(
+                    depo.konumlar.isEmpty
+                        ? 'Henüz yer eklemedin'
+                        : depo.konumlar.map((k) => k.ad).join(', '),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 12.5,
+                      color: Renkler.metinSolgun,
+                    ),
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => YerlerimEkrani(depo: depo),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 4),
+                child: Text(
+                  'Eklediğin yerler için depremlerin tahmini olarak ne kadar '
+                  'hissedileceği hesaplanır. Konum bilgisi yalnızca telefonunda '
+                  'saklanır, hiçbir yere gönderilmez.',
+                  style: TextStyle(
+                    fontSize: 12,
+                    height: 1.4,
+                    color: Renkler.metinSolgun,
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 22),
               _bolumBasligi('VERİ KAYNAĞI'),
               _kutu(
                 child: Column(

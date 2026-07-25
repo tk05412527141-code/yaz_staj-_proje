@@ -8,9 +8,10 @@ Liste görünümü, harita üzerinde işaretçiler, büyüklük/tarih/konum filt
 
 ## Özellikler
 
+- **Yerlerim ve hissedilirlik tahmini** — ev, iş, ailenin evi gibi yerleri kaydedersin; her deprem için o noktalarda ne kadar hissedileceği tahmin edilir. "4.1" yerine **"Evinizden 340 km — hissetmeyeceksiniz"**.
 - **Üç sekmeli yapı** — Liste, Harita ve Ayarlar. Alt sekme çubuğu ile tek elle erişilebilir.
 - **İki veri kaynağı** — AFAD ve Kandilli arasında geçiş yapılabilir. Biri gecikirse veya erişilemezse diğerine geçerek uygulama çalışmaya devam eder.
-- **Tek dokunuşluk hızlı filtreler** — Tümü / Son 1 saat / Bugün / Hissedilenler 3.0+ / Güçlü 4.5+
+- **Tek dokunuşluk hızlı filtreler** — Tümü / Yerlerim / Son 1 saat / Bugün / Hissedilenler 3.0+ / Güçlü 4.5+
 - **Ayrıntılı filtre paneli** — alttan açılır: kaynak, zaman aralığı, minimum büyüklük, sıralama
 - **Tercih hafızası** — seçilen kaynak ve filtreler telefonda saklanır, uygulama kapanınca unutulmaz
 - **İskelet yükleme** — boş ekran yerine parıldayan kart taslakları; bekleme daha kısa hissettirir
@@ -45,6 +46,46 @@ Liste görünümü, harita üzerinde işaretçiler, büyüklük/tarih/konum filt
 │  ▣ Liste  🗺 Harita  ⚙   │   └──────────────────────────┘
 └──────────────────────────┘
 ```
+
+---
+
+## Hissedilirlik Tahmini — Nasıl Hesaplanıyor?
+
+Bu uygulamanın diğer deprem uygulamalarından ayrıldığı yer burası.
+
+**Problem:** Büyüklük tek başına kimseye bir şey ifade etmiyor. 300 km uzaktaki 5.0 hiç hissedilmezken 10 km yakındaki 4.0 insanı uykudan uyandırabilir. Kullanıcının asıl merak ettiği soru "kaç şiddetinde?" değil, **"beni etkiler mi?"**
+
+**Çözüm:** Kullanıcı takip ettiği yerleri kaydediyor, uygulama her deprem için o noktalardaki tahmini Mercalli şiddetini hesaplıyor.
+
+### Kullanılan model
+
+> Allen, T. I., Wald, D. J. & Worden, C. B. (2012).
+> *Intensity attenuation in active crustal regions.*
+> Journal of Seismology, 16: 409–433.
+
+Hiposantr mesafeli sürüm kullanıldı. Katsayılar [OpenQuake Engine](https://github.com/gem/oq-engine)'in açık kaynak uygulamasından alındı (`AllenEtAl2012Rhypo`).
+
+```
+Rm  = m₁ + m₂ · e^(M−5)
+MMI = c₀ + c₁·M + c₂·ln(√(R² + Rm²))        R ≤ 50 km
+MMI = ... + c₄·ln(R/50)                      R > 50 km
+```
+
+`R` hiposantr mesafesi — yani yüzey mesafesi ve derinliğin hipotenüsü. Yüzey mesafesi haversine formülüyle hesaplanıyor.
+
+### Geçerlilik ve dürüstlük
+
+Yayının belirttiği geçerlilik aralığı **M 5.0–7.9** ve **300 km**. Uygulamada gösterilen depremlerin çoğu M5'in altında, yani model ekstrapolasyon yapıyor. Bu durum gizlenmiyor:
+
+- Sonuç ondalıklı bir sayı olarak değil, **kaba kategori** olarak gösteriliyor (Hissedilmez / Zor / Hafif / Belirgin / Güçlü / Çok güçlü / Şiddetli)
+- Geçerlilik aralığı dışındaki tahminler **"(tahmini)"** etiketiyle işaretleniyor
+- Her ekranda gerçek sarsıntının zemin yapısı, bina türü ve kat yüksekliğine göre değişeceği belirtiliyor
+
+MMI değeri 1–12 aralığına kırpılıyor; sıfır mesafe, negatif derinlik ve bozuk veri durumları test edilmiş durumda.
+
+### Gizlilik
+
+Kayıtlı konumlar **yalnızca telefonda** saklanıyor. Hiçbir sunucuya gönderilmiyor, konum izni istenmiyor — kullanıcı yerini şehir listesinden veya haritadan kendisi seçiyor.
 
 ---
 
@@ -119,10 +160,11 @@ flutter run
 lib/
 ├── main.dart                     Uygulama girişi, tema kaydı
 ├── models/
-│   └── deprem.dart               Veri modeli + iki farklı JSON çözümleyici
+│   ├── deprem.dart               Veri modeli + iki farklı JSON çözümleyici
+│   └── kayitli_konum.dart        Kullanıcının takip ettiği yerler
 ├── services/
 │   ├── deprem_servisi.dart       AFAD ve Kandilli API istekleri
-│   └── tercih_servisi.dart       Filtreleri telefonda saklama
+│   └── tercih_servisi.dart       Filtreleri ve konumları telefonda saklama
 ├── state/
 │   └── deprem_deposu.dart        Ortak durum: veri + filtreler (ChangeNotifier)
 ├── screens/
@@ -130,7 +172,9 @@ lib/
 │   ├── liste_sekmesi.dart        Arama, hızlı filtreler, liste
 │   ├── harita_sekmesi.dart       Tüm depremler haritada + seçim kartı
 │   ├── ayarlar_sekmesi.dart      Kaynak seçimi, tercihler, hakkında
-│   └── detay_ekrani.dart         Tek deprem detayı + paylaşım
+│   ├── yerlerim_ekrani.dart      Kayıtlı yerlerin listesi
+│   ├── konum_ekle_ekrani.dart    Şehirden veya haritadan yer seçme
+│   └── detay_ekrani.dart         Detay + yerlerdeki etki + paylaşım
 ├── widgets/
 │   ├── deprem_karti.dart         Listedeki tek kart
 │   ├── iskelet_kart.dart         Yükleme sırasındaki parıldayan taslaklar
@@ -138,7 +182,9 @@ lib/
 │   └── durum_gorunumu.dart       Boş / hata ekranları
 └── utils/
     ├── tema.dart                 Renk paleti ve bileşen stilleri
-    └── buyukluk_stili.dart       Büyüklüğe göre renk / etiket / boyut
+    ├── buyukluk_stili.dart       Büyüklüğe göre renk / etiket / boyut
+    ├── siddet_hesabi.dart        Mesafe + tahmini sarsıntı şiddeti
+    └── sehirler.dart             81 il koordinatı, konum simgeleri
 ```
 
 Bu ayrım bilinçli: **veri (model)**, **veri çekme (service)**, **durum (state)**, **görüntüleme (screen/widget)** birbirinden ayrı. Bir API değişirse sadece `services/` düzenlenir, ekranlara dokunulmaz.
@@ -223,18 +269,38 @@ Paketin güncel sürümü Flutter 3.38+ istiyor, projenin hedefinden çok yeni. 
 - **Bildirim yok** — Yeni deprem olduğunda uygulama kendiliğinden haber vermiyor.
 - **Çevrimdışı çalışmıyor** — Veriler önbelleğe alınmıyor, internet yoksa liste boş kalır.
 - **Sadece koyu tema** — Açık tema seçeneği yok; uygulama koyu zemin üzerine tasarlandı.
+- **Şiddet tahmini yaklaşıktır** — Zemin sınıfı (Vs30), bina türü ve kat yüksekliği hesaba katılmıyor. Model M5.0 altındaki depremler için ekstrapolasyon yapıyor.
 - **Sistem paylaşım menüsü yok** — Paylaşım panoya kopyalama ile yapılıyor (gerekçesi yukarıda).
 - **Kandilli API'si resmi değil** — Üçüncü taraf bir servis üzerinden erişiliyor, kapanma ihtimali var. AFAD ise doğrudan resmi kaynaktan.
 - **Harita kümeleme yok** — Çok sayıda deprem olduğunda işaretçiler üst üste biniyor.
 
 ## Geliştirilebilecek Yönler
 
+- **Bildirim altyapısı** — kayıtlı yerlerde belirli bir şiddetin üzerinde tahmin edildiğinde bildirim (Firebase + sunucu gerektirir)
+- Zemin sınıfı verisiyle şiddet tahminini iyileştirme
 - Belirli büyüklüğün üzerindeki depremler için bildirim gönderme
 - Verileri yerel veritabanına kaydedip çevrimdışı erişim
 - Yakındaki depremleri gösterme (konum izni ile)
 - Harita işaretçilerini kümeleme (`flutter_map_marker_cluster`)
 - Şehir bazlı deprem istatistikleri ve grafikler
 - Saat dilimi normalizasyonu
+
+---
+
+## Testler
+
+```bash
+flutter test
+```
+
+35 birim testi çalışıyor:
+
+| Dosya | Kapsam |
+|---|---|
+| `test/widget_test.dart` | JSON çözümleme: AFAD'ın metin sayıları, Kandilli'nin GeoJSON koordinat sırası, bozuk/eksik veri dayanıklılığı |
+| `test/siddet_hesabi_test.dart` | Haversine mesafesi, bilinen deprem senaryoları, monotonluk (mesafe ↑ → şiddet ↓), sınır durumları, geçerlilik bayrağı |
+
+Arayüz yerine bu iki katman test ediliyor çünkü projenin hataya en açık ve en kritik kısmı burası — üstelik internet gerektirmeden çalışıyorlar.
 
 ---
 
