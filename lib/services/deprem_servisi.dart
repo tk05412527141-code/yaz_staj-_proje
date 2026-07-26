@@ -14,6 +14,67 @@ enum VeriKaynagi {
   const VeriKaynagi(this.ad);
 }
 
+/// Bir veri cekme isleminin sonucu ve KAPSAMA bilgisi.
+///
+/// NEDEN SADECE LISTE DONMUYORUZ?
+///   Kandilli endpoint'i tarih filtresi almiyor: sadece "son N kayit"
+///   veriyor. Turkiye'de gunde 100-300 deprem oldugu icin 1000 kayit
+///   bile 3-7 gunu zar zor kapsiyor.
+///
+///   Kullanici "son 30 gun" sectiginde elimizde 30 gunluk veri OLMADIGI
+///   halde liste doluymus gibi gorunuyordu. Bu sessiz bir eksiklik ve
+///   kullanicinin yanlis sonuc cikarmasina yol aciyor.
+///
+///   Bu sinif, verinin istenen araligi gercekten kapsayip kapsamadigini
+///   soyluyor; arayuz de bunu kullaniciya bildiriyor.
+class DepremYanit {
+  final List<Deprem> depremler;
+
+  /// Kullanicinin istedigi baslangic tarihi
+  final DateTime istenenBaslangic;
+
+  /// Sunucudan kac kayit istendigi
+  final int kayitSiniri;
+
+  final VeriKaynagi kaynak;
+
+  const DepremYanit({
+    required this.depremler,
+    required this.istenenBaslangic,
+    required this.kayitSiniri,
+    required this.kaynak,
+  });
+
+  /// Elimizdeki en eski kaydin tarihi (liste bossa null)
+  DateTime? get enEskiKayit {
+    if (depremler.isEmpty) return null;
+    // Liste yeniden eskiye sirali
+    return depremler.last.tarih;
+  }
+
+  /// Veri istenen araligi kapsamiyor mu?
+  ///
+  /// Kayit sayisi sinira dayanmis VE en eski kayit istenen baslangictan
+  /// belirgin olarak yeniyse, sunucu bize araligin tamamini vermemis.
+  bool get kapsamEksik {
+    final enEski = enEskiKayit;
+    if (enEski == null) return false;
+    if (depremler.length < kayitSiniri) return false;
+
+    // 2 saatlik tolerans: kucuk sapmalar dogal
+    return enEski.isAfter(
+      istenenBaslangic.add(const Duration(hours: 2)),
+    );
+  }
+
+  /// Verinin gercekte kac gunu kapsadigi
+  int get kapsananGun {
+    final enEski = enEskiKayit;
+    if (enEski == null) return 0;
+    return DateTime.now().difference(enEski).inDays;
+  }
+}
+
 /// Deprem verilerini internetten ceken servis.
 ///
 /// Iki farkli kaynak destekleniyor:
@@ -33,21 +94,70 @@ class DepremServisi {
   ///
   /// [gunSayisi]   kac gun geriye gidilecek
   /// [minBuyukluk] bu degerin altindaki depremler elenir
-  static Future<List<Deprem>> getir({
+  static Future<DepremYanit> getir({
     required VeriKaynagi kaynak,
     required int gunSayisi,
     required double minBuyukluk,
+    int kayitSiniri = 1000,
   }) async {
+    final simdi = DateTime.now();
+    final istenenBaslangic = simdi.subtract(Duration(days: gunSayisi));
+
     final List<Deprem> depremler;
     if (kaynak == VeriKaynagi.afad) {
-      depremler = await _afaddanGetir(gunSayisi, minBuyukluk);
+      depremler = await _afaddanGetir(
+        istenenBaslangic,
+        simdi,
+        minBuyukluk,
+        kayitSiniri,
+      );
     } else {
-      depremler = await _kandillidenGetir(gunSayisi, minBuyukluk);
+      depremler = await _kandillidenGetir(
+        istenenBaslangic,
+        minBuyukluk,
+        kayitSiniri,
+      );
     }
 
     // En yeniden en eskiye sirala
     depremler.sort((a, b) => b.tarih.compareTo(a.tarih));
-    return depremler;
+
+    return DepremYanit(
+      depremler: depremler,
+      istenenBaslangic: istenenBaslangic,
+      kayitSiniri: kayitSiniri,
+      kaynak: kaynak,
+    );
+  }
+
+  /// Duyuru bultenleri icin hedefli sorgu.
+  ///
+  /// NEDEN AYRI BIR SORGU?
+  ///   Ana liste "son 7 gun, tum buyuklukler" istiyor. Kandilli endpoint'i
+  ///   tarih filtresi almadigi icin sadece son N kaydi veriyor ve
+  ///   Turkiye'de gunde 100-300 deprem oldugundan 1000 kayit bile
+  ///   7 gunu zar zor kapsiyor.
+  ///
+  ///   Bultenler ise "son 30 gunun onemli depremleri" istiyor. Ayni
+  ///   veriyi kullanmak imkansiz: 30 gunluk tum depremler on binlerce
+  ///   kayit olurdu.
+  ///
+  ///   Cozum: AFAD sunucu tarafinda minmag filtresi destekliyor. Yuksek
+  ///   esikli sorgu, 30 gunu kapsayan ama sadece birkac dusuzine kayit
+  ///   donen verimli bir istek oluyor.
+  static Future<DepremYanit> bultenIcinGetir({
+    required VeriKaynagi kaynak,
+    required int gunSayisi,
+    required double minBuyukluk,
+  }) {
+    return getir(
+      kaynak: kaynak,
+      gunSayisi: gunSayisi,
+      minBuyukluk: minBuyukluk,
+      // Kandilli tarih/buyukluk filtresi almadigi icin daha genis bir
+      // pencere istiyoruz; AFAD'da bu sinir zaten asilmaz.
+      kayitSiniri: kaynak == VeriKaynagi.afad ? 500 : 2000,
+    );
   }
 
   // ------------------------------------------------------------------
@@ -55,17 +165,18 @@ class DepremServisi {
   // ------------------------------------------------------------------
 
   static Future<List<Deprem>> _afaddanGetir(
-    int gunSayisi,
+    DateTime baslangic,
+    DateTime bitis,
     double minBuyukluk,
+    int kayitSiniri,
   ) async {
-    final simdi = DateTime.now();
-    final baslangic = simdi.subtract(Duration(days: gunSayisi));
-
+    // AFAD tarih ve minmag filtresini SUNUCU TARAFINDA destekliyor:
+    // yuksek esikli uzun araliklar bile az kayit dondurur.
     final adres = Uri.parse(_afadUrl).replace(queryParameters: {
       'start': _afadTarihFormati(baslangic),
-      'end': _afadTarihFormati(simdi),
+      'end': _afadTarihFormati(bitis),
       'orderby': 'timedesc',
-      'limit': '1000',
+      'limit': kayitSiniri.toString(),
       if (minBuyukluk > 0) 'minmag': minBuyukluk.toStringAsFixed(1),
     });
 
@@ -98,13 +209,16 @@ class DepremServisi {
   // ------------------------------------------------------------------
 
   static Future<List<Deprem>> _kandillidenGetir(
-    int gunSayisi,
+    DateTime baslangic,
     double minBuyukluk,
+    int kayitSiniri,
   ) async {
-    // Bu API tarih araligi parametresi almiyor; son N kaydi verip
-    // filtrelemeyi biz yapiyoruz.
+    // DIKKAT: Bu API tarih araligi VE buyukluk parametresi ALMIYOR.
+    // Sadece "son N kayit" veriyor; filtrelemeyi biz yapiyoruz.
+    // Bu yuzden uzun araliklarda veri eksik kalabilir -> DepremYanit
+    // .kapsamEksik bunu bildiriyor.
     final adres = Uri.parse(_kandilliUrl).replace(queryParameters: {
-      'limit': '500',
+      'limit': kayitSiniri.toString(),
     });
 
     final govde = await _istekAt(adres, 'Kandilli');
@@ -120,13 +234,12 @@ class DepremServisi {
       throw Exception('Kandilli yanitinda deprem listesi bulunamadi.');
     }
 
-    final sinir = DateTime.now().subtract(Duration(days: gunSayisi));
-
     final List<Deprem> sonuc = [];
     for (final oge in kayitlar) {
       if (oge is! Map<String, dynamic>) continue;
       final deprem = Deprem.kandilliden(oge);
-      if (deprem.buyukluk >= minBuyukluk && deprem.tarih.isAfter(sinir)) {
+      if (deprem.buyukluk >= minBuyukluk &&
+          deprem.tarih.isAfter(baslangic)) {
         sonuc.add(deprem);
       }
     }
