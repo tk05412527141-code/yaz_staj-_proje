@@ -34,6 +34,14 @@ dependencies:
   # Zamanlanmis bildirimler icin saat dilimi veritabani
   timezone: ^0.10.0
 
+  # Acil durumda GPS konumu almak icin.
+  # Surum araligi genis: kullandigimiz API (locationSettings) 13.x ve
+  # 14.x'te ayni, boylece pub uygun surumu kendisi secebilir.
+  geolocator: '>=13.0.0 <15.0.0'
+
+  # SMS / WhatsApp / telefon uygulamalarini acmak icin
+  url_launcher: ^6.3.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

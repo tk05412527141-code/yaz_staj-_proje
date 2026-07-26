@@ -4,7 +4,9 @@ import 'package:flutter/services.dart';
 import '../services/tercih_servisi.dart';
 import '../state/deprem_deposu.dart';
 import 'acilis_ekrani.dart';
+import 'acil_durum_ekrani.dart';
 import 'ayarlar_sekmesi.dart';
+import 'duyurular_sekmesi.dart';
 import 'harita_sekmesi.dart';
 import 'liste_sekmesi.dart';
 import 'tanitim_ekrani.dart';
@@ -89,6 +91,8 @@ class _AnaKabukState extends State<AnaKabuk> {
         children: [
           ListeSekmesi(depo: _depo),
           HaritaSekmesi(depo: _depo),
+          DuyurularSekmesi(depo: _depo),
+          AcilDurumEkrani(depo: _depo),
           AyarlarSekmesi(depo: _depo),
         ],
       ),
@@ -110,6 +114,18 @@ class _AnaKabukState extends State<AnaKabuk> {
             selectedIcon: Icon(Icons.map),
             label: 'Harita',
             tooltip: 'Harita görünümü',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.campaign_outlined),
+            selectedIcon: Icon(Icons.campaign),
+            label: 'Duyuru',
+            tooltip: 'Resmî verilerden üretilen bültenler',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.sos_outlined),
+            selectedIcon: Icon(Icons.sos),
+            label: 'Acil',
+            tooltip: 'Acil durum: konum mesajı ve yakınlar',
           ),
           NavigationDestination(
             icon: Icon(Icons.settings_outlined),

@@ -8,6 +8,8 @@ Liste görünümü, harita üzerinde işaretçiler, büyüklük/tarih/konum filt
 
 ## Özellikler
 
+- **Acil durum butonu** — basılı tut, konumun yakınlarına gidecek mesaja hazır eklenir. SMS ve WhatsApp desteği, 112 kısayolu, "İyiyim" mesajı.
+- **Duyurular** — 4.0 ve üzeri depremler için resmî verilerden üretilen bültenler: parametreler, artçı sayımı ve eğilimi, yerlerindeki tahmini etki
 - **Hazırlık hatırlatmaları** — deprem çantası, tatbikat, ev güvenliği için periyodik bildirimler. Deprem olmadan önce işine yarayan bölüm; sunucu gerektirmez, tamamen cihazda çalışır.
 - **Özel uygulama ikonu ve animasyonlu açılış** — logo belirirken çevresinden sismik halkalar yayılır; yerel açılış ekranı da aynı koyu zeminde, beyaz parlama yok
 - **Yerlerim ve hissedilirlik tahmini** — ev, iş, ailenin evi gibi yerleri kaydedersin; her deprem için o noktalarda ne kadar hissedileceği tahmin edilir. "4.1" yerine **"Evinizden 340 km — hissetmeyeceksiniz"**.
@@ -15,7 +17,7 @@ Liste görünümü, harita üzerinde işaretçiler, büyüklük/tarih/konum filt
 - **Kişisel durum kartı** — listenin en üstünde: *"Yerleriniz sakin — son 24 saatte hissedilmesi beklenen deprem yok"*
 - **Günlere ayrılmış liste** — kaydırırken üste yapışan "Bugün / Dün / 20 Temmuz" başlıkları
 - **Erişilebilirlik** — ekran okuyucu etiketleri, renge ek olarak sayıyla kodlama, büyük yazı tipine uyum, 48×48 dokunma hedefleri
-- **Üç sekmeli yapı** — Liste, Harita ve Ayarlar. Alt sekme çubuğu ile tek elle erişilebilir.
+- **Beş sekmeli yapı** — Liste, Harita, Duyurular, Acil ve Ayarlar. Alt sekme çubuğu ile tek elle erişilebilir.
 - **İki veri kaynağı** — AFAD ve Kandilli arasında geçiş yapılabilir. Biri gecikirse veya erişilemezse diğerine geçerek uygulama çalışmaya devam eder.
 - **Tek dokunuşluk hızlı filtreler** — Tümü / Yerlerim / Son 1 saat / Bugün / Hissedilenler 3.0+ / Güçlü 4.5+
 - **Ayrıntılı filtre paneli** — alttan açılır: kaynak, zaman aralığı, minimum büyüklük, sıralama
@@ -96,7 +98,9 @@ MMI değeri 1–12 aralığına kırpılıyor; sıfır mesafe, negatif derinlik 
 
 ### Gizlilik
 
-Kayıtlı konumlar **yalnızca telefonda** saklanıyor. Hiçbir sunucuya gönderilmiyor, konum izni istenmiyor — kullanıcı yerini şehir listesinden veya haritadan kendisi seçiyor.
+Kayıtlı konumlar **yalnızca telefonda** saklanıyor, hiçbir sunucuya gönderilmiyor. Kullanıcı yerini şehir listesinden veya haritadan kendisi seçiyor — bu özellik için konum izni istenmiyor.
+
+**Acil durum butonu bir istisna:** o özellik gerçek GPS gerektiriyor. İzin yalnızca butona basıldığında kullanılıyor; arka planda takip yok, sürekli dinleme yok, konum hiçbir sunucuya gitmiyor. Rehber erişim izni de istenmiyor — acil kişiler elle giriliyor.
 
 ---
 
@@ -141,6 +145,62 @@ Kontrol listesi hatırlatmaları besliyor: bir maddeyi işaretlediğinde `tamaml
 Bu yüzden `^19.0.0`'a sabitlendi. Caret 20.0.0'a geçmiyor, yani API şekli garanti.
 
 Zamanlama `AndroidScheduleMode.inexactAllowWhileIdle` ile yapılıyor — `SCHEDULE_EXACT_ALARM` izni gerektirmiyor. Hazırlık hatırlatmalarında dakika hassasiyeti gerekmediği için doğru seçim; sistem pil dostu bir zamanda gönderiyor.
+
+---
+
+## Acil Durum Butonu
+
+Basılı tuttuğunda konumunu içeren bir mesaj hazırlanıp yakınlarına gönderilmek üzere SMS uygulamasında açılıyor.
+
+### Neyi yapamaz — ve bu neden önemli
+
+**Mesajı kendiliğinden gönderemez.** Ne iOS ne Android bir uygulamanın kullanıcı onayı olmadan SMS göndermesine izin veriyor. Android'de `SEND_SMS` izni teknik olarak var ama Play Store, varsayılan SMS uygulaması olmayan uygulamaları bu izinle reddediyor.
+
+Bu kısıt arayüzde açıkça yazılı. Acil durumda kullanıcının "mesaj gitti" sanıp yardım beklemesi gerçek zarar doğurur — bu yüzden gizlenmemesi gereken bir bilgi.
+
+### Basamaklı konum yedeklemesi
+
+Acil durumda konum alınamaması mesajın hiç gitmemesine sebep olmamalı:
+
+| Sıra | Kaynak | Ne zaman |
+|---|---|---|
+| 1 | GPS | İzin var ve konum servisi açık — 12 saniye zaman aşımı |
+| 2 | Cihazın son bilinen konumu | GPS yanıt vermezse, anında |
+| 3 | Kayıtlı "Yerlerim" konumu | Hiç konum izni yoksa |
+| 4 | Konumsuz mesaj | Hiçbiri yoksa — mesaj yine gider |
+
+Konumun hangi kaynaktan geldiği hem arayüzde hem **mesajın içinde** belirtiliyor: alıcı, koordinatın anlık GPS mi yoksa kayıtlı adres mi olduğunu bilmeli.
+
+### Yanlışlıkla basılmaya karşı
+
+Buton 1,5 saniye basılı tutulmayı gerektiriyor ve ilerleme çemberi gösteriyor. Aileye kazara acil mesaj gitmesi hem utanç verici hem "kurt masalı" etkisi yaratır — sonraki gerçek uyarı ciddiye alınmaz.
+
+### Sessiz hata riski
+
+Android 11+ paket görünürlüğü kuralları gereği `sms`, `tel` ve `https` şemaları `AndroidManifest.xml`'deki `<queries>` bloğunda bildirilmek zorunda. Bildirilmezse `canLaunchUrl()` **her zaman false döner** ve buton hiçbir hata vermeden çalışmaz. Bir acil durum özelliğinde bu en kötü hata türü.
+
+> Flutter'ın şablonunda `PROCESS_TEXT` için zaten bir `<queries>` bloğu var; ikinci bir blok geçersizdir, şemalar mevcut bloğun içine eklenmeli.
+
+Her kanal başarısız olursa mesaj panoya kopyalanıyor ve kullanıcıya söyleniyor.
+
+---
+
+## Duyurular — Neden "Haber" Değil
+
+İlk plan deprem etiketli haberleri toplamaktı. İki sorun çıktı:
+
+**1. AFAD ve Kandilli'nin makine-okunabilir duyuru beslemesi yok.** AFAD'ın `/rss` adresi boş dönüyor. HTML kazımak hem kırılgan hem kullanım koşulları açısından tartışmalı.
+
+**2. Daha önemlisi: tahmin iddiaları.** Türkiye'de "deprem" etiketli haberlerin ciddi bir kısmı *"Uzman uyardı: X ilinde 7'lik deprem"* türünde. Uygulamanın başka bir ekranında tahminin bilimsel olarak mümkün olmadığını anlatıyoruz; filtresiz haber akıtmak bununla çelişir ve bir güvenlik uygulamasında panik yaratabilir.
+
+Bu yüzden duyurular **zaten kullandığımız resmî veriden** üretiliyor:
+
+- Deprem parametreleri (büyüklük, derinlik, koordinat) doğrudan AFAD/Kandilli verisinden
+- Artçı sayımı: ana depremden sonra, daha küçük ve ~100 km içindeki kayıtlar
+- Artçı eğilimi: son 6 saatteki sayı önceki 6 saatten az mı
+- Kullanıcının yerlerindeki tahmini etki
+
+Artçı sayımı ve eğilim **yaklaşık değerlerdir** — arayüzde "yaklaşık" diye belirtiliyor ve bunların kurumların basın açıklaması olmadığı açıkça yazıyor.
 
 ---
 
@@ -231,11 +291,15 @@ lib/
 ├── models/
 │   ├── deprem.dart               Veri modeli + iki farklı JSON çözümleyici
 │   ├── kayitli_konum.dart        Kullanıcının takip ettiği yerler
-│   └── hazirlik_maddesi.dart     Hazırlık listesi ve durum modeli
+│   ├── hazirlik_maddesi.dart     Hazırlık listesi ve durum modeli
+│   └── acil_kisi.dart            Acil kişi modeli, telefon biçimleri
 ├── services/
 │   ├── deprem_servisi.dart       AFAD ve Kandilli API istekleri
 │   ├── tercih_servisi.dart       Filtreleri ve konumları telefonda saklama
 │   ├── bildirim_servisi.dart     Yerel bildirim sarmalayıcı
+│   ├── konum_servisi.dart        GPS + basamaklı yedekleme
+│   ├── acil_durum_servisi.dart   Mesaj oluşturma, SMS/WhatsApp/arama
+│   ├── bulten_uretici.dart       Artçı sayımı, bülten üretimi
 │   └── hatirlatma_planlayici.dart  Sonraki hatırlatma tarihi hesabı
 ├── state/
 │   └── deprem_deposu.dart        Ortak durum: veri + filtreler (ChangeNotifier)
@@ -245,6 +309,9 @@ lib/
 │   ├── harita_sekmesi.dart       Tüm depremler haritada + seçim kartı
 │   ├── ayarlar_sekmesi.dart      Kaynak seçimi, tercihler, hakkında
 │   ├── acilis_ekrani.dart        Animasyonlu giriş ekranı
+│   ├── duyurular_sekmesi.dart    Resmî verilerden üretilen bültenler
+│   ├── acil_durum_ekrani.dart    Acil buton, kişiler, 112
+│   ├── acil_kisi_ekle_ekrani.dart  Kişi ekleme/düzenleme
 │   ├── hazirlik_ekrani.dart      Kontrol listesi + hatırlatma ayarları
 │   ├── erken_uyari_ekrani.dart   Erken uyarı hakkında dürüst bilgilendirme
 │   ├── tanitim_ekrani.dart       İlk açılış tanıtımı (3 ekran)
@@ -346,6 +413,9 @@ Paketin güncel sürümü Flutter 3.38+ istiyor, projenin hedefinden çok yeni. 
 - **Saat dilimi** — İki kurumun saatleri farklı dilimlerde olabilir (UTC / TSİ). Uygulama gelen değeri olduğu gibi gösteriyor; kaynaklar arası saat farkı doğrulanmadı.
 - **Deprem sonrası bildirim yok** — Hazırlık hatırlatmaları çalışıyor ama "az önce deprem oldu" bildirimi için sunucu tarafı gerekiyor (bir servisin API'yi sürekli izleyip itmeli bildirim göndermesi).
 - **Erken uyarı yok** — Sismik ağ gerektirir; gerekçesi yukarıda.
+- **Acil mesaj otomatik gönderilmez** — Platform kısıtı; son dokunuş kullanıcıda.
+- **Gerçek haber akışı yok** — Duyurular resmî veriden üretilir, basın açıklaması değildir.
+- **Artçı sayımı yaklaşıktır** — 100 km yarıçap ve "daha küçük büyüklük" kuralına dayanır; sismolojik bir artçı tanımı değildir.
 - **Çevrimdışı çalışmıyor** — Veriler önbelleğe alınmıyor, internet yoksa liste boş kalır.
 - **Sadece koyu tema** — Açık tema seçeneği yok; uygulama koyu zemin üzerine tasarlandı.
 - **Şiddet tahmini yaklaşıktır** — Zemin sınıfı (Vs30), bina türü ve kat yüksekliği hesaba katılmıyor. Model M5.0 altındaki depremler için ekstrapolasyon yapıyor.
@@ -373,7 +443,7 @@ Paketin güncel sürümü Flutter 3.38+ istiyor, projenin hedefinden çok yeni. 
 flutter test
 ```
 
-75 birim testi çalışıyor:
+106 birim testi çalışıyor:
 
 | Dosya | Kapsam |
 |---|---|
@@ -381,6 +451,7 @@ flutter test
 | `test/siddet_hesabi_test.dart` | Haversine mesafesi, bilinen deprem senaryoları, monotonluk (mesafe ↑ → şiddet ↓), sınır durumları, geçerlilik bayrağı |
 | `test/gun_gruplama_test.dart` | Gün gruplama: gece yarısı sınırı, yıl geçişi, boş liste, başlık metinleri, kayıt kaybolmaması |
 | `test/hatirlatma_test.dart` | Hatırlatma tarihi hesabı, geçmişe planlama koruması, bildirim kimliği çakışması, durum saklama |
+| `test/acil_durum_test.dart` | Telefon temizleme/doğrulama, WhatsApp biçimi, mesaj oluşturma, konumsuz durum, kişi saklama |
 
 Arayüz yerine bu iki katman test ediliyor çünkü projenin hataya en açık ve en kritik kısmı burası — üstelik internet gerektirmeden çalışıyorlar.
 

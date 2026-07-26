@@ -66,5 +66,14 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Acil durum butonuna bastığınızda konumunuzu yakınlarınıza gönderilecek mesaja eklemek için kullanılır. Konumunuz arka planda takip edilmez ve hiçbir sunucuya gönderilmez.</string>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>sms</string>
+		<string>tel</string>
+		<string>whatsapp</string>
+		<string>https</string>
+	</array>
 </dict>
 </plist>

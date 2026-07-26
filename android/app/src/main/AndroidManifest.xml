@@ -5,6 +5,10 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <!-- Telefon yeniden baslatilinca planlanmis hatirlatmalar korunsun -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <!-- Acil durum butonu: konum SADECE butona basildiginda okunur,
+         arka planda takip yapilmaz -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <application
         android:label="Deprem Takip"
         android:name="${applicationName}"
@@ -65,6 +69,27 @@
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
+        </intent>
+
+        <!-- Acil durum butonu: SMS, arama ve WhatsApp/tarayici acilabilsin.
+             Android 11+ paket gorunurlugu kurallari geregi bildirilmeli;
+             aksi halde canLaunchUrl() her zaman false doner ve buton
+             SESSIZCE calismaz. -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="sms"/>
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.SENDTO"/>
+            <data android:scheme="smsto"/>
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.DIAL"/>
+            <data android:scheme="tel"/>
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="https"/>
         </intent>
     </queries>
 </manifest>

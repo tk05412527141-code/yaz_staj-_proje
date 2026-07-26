@@ -2,9 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
+import '../models/acil_kisi.dart';
 import '../models/deprem.dart';
 import '../models/hazirlik_maddesi.dart';
 import '../models/kayitli_konum.dart';
+import '../services/bulten_uretici.dart';
 import '../services/deprem_servisi.dart';
 import '../services/hatirlatma_planlayici.dart';
 import '../services/tercih_servisi.dart';
@@ -67,6 +69,9 @@ class DepremDeposu extends ChangeNotifier {
   // --- Deprem oncesi hazirlik durumu ---
   HazirlikDurumu hazirlik = const HazirlikDurumu();
 
+  // --- Acil durumda haber verilecek kisiler ---
+  List<AcilKisi> acilKisiler = [];
+
   bool _tercihlerYuklendi = false;
 
   // ------------------------------------------------------------------
@@ -78,6 +83,7 @@ class DepremDeposu extends ChangeNotifier {
     await _tercihleriYukle();
     await _konumlariYukle();
     await _hazirligiYukle();
+    await _acilKisileriYukle();
 
     // Hatirlatmalari her acilista yeniden planliyoruz. Cihaz bildirimleri
     // uzun periyotlari kendi basina tekrarlayamadigi icin bir sonraki
@@ -137,6 +143,55 @@ class DepremDeposu extends ChangeNotifier {
 
   /// Acik hatirlatma sayisi - ayarlar ekraninda ozet gostermek icin.
   int get acikHatirlatmaSayisi => hazirlik.acikHatirlatmalar.length;
+
+  // ------------------------------------------------------------------
+  // Acil durum kisileri
+  // ------------------------------------------------------------------
+
+  Future<void> _acilKisileriYukle() async {
+    acilKisiler = AcilKisi.listeyiCoz(await TercihServisi.acilKisileriOku());
+  }
+
+  Future<void> _acilKisileriKaydet() async {
+    await TercihServisi.acilKisileriKaydet(
+      AcilKisi.listeyiKodla(acilKisiler),
+    );
+  }
+
+  Future<void> acilKisiEkle(AcilKisi kisi) async {
+    acilKisiler = [...acilKisiler, kisi];
+    notifyListeners();
+    await _acilKisileriKaydet();
+  }
+
+  Future<void> acilKisiSil(String id) async {
+    acilKisiler = acilKisiler.where((k) => k.id != id).toList();
+    notifyListeners();
+    await _acilKisileriKaydet();
+  }
+
+  Future<void> acilKisiGuncelle(AcilKisi yeni) async {
+    acilKisiler =
+        acilKisiler.map((k) => k.id == yeni.id ? yeni : k).toList();
+    notifyListeners();
+    await _acilKisileriKaydet();
+  }
+
+  bool get acilKisiVar => acilKisiler.isNotEmpty;
+
+  // ------------------------------------------------------------------
+  // Duyuru bultenleri
+  // ------------------------------------------------------------------
+
+  /// Onemli depremler icin uretilmis bultenler.
+  ///
+  /// Her cagrida yeniden hesaplaniyor. Liste boyutu (en fazla birkac yuz
+  /// kayit) bunun icin fazlasiyla kucuk; onbelleklemek karmasikligi
+  /// kazancindan buyuk olurdu.
+  List<Bulten> get bultenler => BultenUretici.uret(
+        depremler: _ham,
+        konumlar: konumlar,
+      );
 
   // ------------------------------------------------------------------
   // Kayitli konumlar
