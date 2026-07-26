@@ -67,6 +67,47 @@ class DepremDeposu extends ChangeNotifier {
   List<Haber> haberler = const [];
   bool haberYukleniyor = true;
 
+  /// Duyurular (haber + bulten) en son ne zaman cekildi.
+  DateTime? duyuruSonGuncelleme;
+
+  /// Veri kac dakika sonra "bayat" sayilsin.
+  ///
+  /// Deprem haberi cok sik degismiyor; her sekme gecisinde istek atmak
+  /// hem gereksiz hem de kaynagin sunucusuna yuk. 10 dakika, tazelikle
+  /// istek sayisi arasinda makul bir denge.
+  static const bayatlamaSuresi = Duration(minutes: 10);
+
+  bool get duyurularBayatMi {
+    final t = duyuruSonGuncelleme;
+    if (t == null) return true;
+    return DateTime.now().difference(t) > bayatlamaSuresi;
+  }
+
+  String get duyuruGuncellemeMetni {
+    final t = duyuruSonGuncelleme;
+    if (t == null) return 'Henüz güncellenmedi';
+    final fark = DateTime.now().difference(t);
+    if (fark.inMinutes < 1) return 'Az önce güncellendi';
+    if (fark.inMinutes < 60) return '${fark.inMinutes} dk önce güncellendi';
+    return '${fark.inHours} saat önce güncellendi';
+  }
+
+  /// Bayatsa duyurulari yeniler, tazeyse hicbir sey yapmaz.
+  ///
+  /// Duyurular sekmesine her girildiginde ve uygulama on plana her
+  /// dondugunde cagriliyor. Gereksiz istek atmamak icin bayatlik
+  /// kontrolu burada.
+  Future<void> duyurulariTazele() async {
+    if (!duyurularBayatMi) return;
+    await Future.wait([bultenleriYenile(), haberleriYenile()]);
+  }
+
+  /// Kullanicinin acikca istedigi yenileme (asagi cekme).
+  /// Bayatlik kontrolu YAPMAZ - kullanici istedi, yenile.
+  Future<void> duyurulariYenile() async {
+    await Future.wait([bultenleriYenile(), haberleriYenile()]);
+  }
+
   // --- Sunucuya giden filtreler (degisince yeniden veri cekilir) ---
   VeriKaynagi kaynak = VeriKaynagi.kandilli;
   int gunSayisi = 7;
@@ -394,6 +435,7 @@ class DepremDeposu extends ChangeNotifier {
       haberler = const [];
     } finally {
       haberYukleniyor = false;
+      duyuruSonGuncelleme = DateTime.now();
       notifyListeners();
     }
   }
@@ -431,6 +473,7 @@ class DepremDeposu extends ChangeNotifier {
       _bultenler = const [];
     } finally {
       bultenYukleniyor = false;
+      duyuruSonGuncelleme = DateTime.now();
       notifyListeners();
     }
   }

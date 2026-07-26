@@ -28,7 +28,8 @@ class AnaKabuk extends StatefulWidget {
   State<AnaKabuk> createState() => _AnaKabukState();
 }
 
-class _AnaKabukState extends State<AnaKabuk> {
+class _AnaKabukState extends State<AnaKabuk>
+    with WidgetsBindingObserver {
   final _depo = DepremDeposu();
   int _sekme = 0;
 
@@ -38,10 +39,24 @@ class _AnaKabukState extends State<AnaKabuk> {
   /// Acilis animasyonu bitti mi?
   bool _acilisBitti = false;
 
+  /// Duyurular sekmesinin IndexedStack icindeki sirasi.
+  static const _duyuruSekmesi = 2;
+
   @override
   void initState() {
     super.initState();
+    // Uygulama on plana dondugunde haberleri tazelemek icin dinliyoruz
+    WidgetsBinding.instance.addObserver(this);
     _baslat();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState durum) {
+    // Kullanici uygulamayi arka plandan geri getirdiginde veri bayat
+    // olabilir. Bayatsa tazeliyoruz; taze ise istek atilmiyor.
+    if (durum == AppLifecycleState.resumed) {
+      _depo.duyurulariTazele();
+    }
   }
 
   Future<void> _baslat() async {
@@ -63,6 +78,7 @@ class _AnaKabukState extends State<AnaKabuk> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _depo.dispose();
     super.dispose();
   }
@@ -101,6 +117,11 @@ class _AnaKabukState extends State<AnaKabuk> {
         onDestinationSelected: (i) {
           if (i != _sekme) HapticFeedback.selectionClick();
           setState(() => _sekme = i);
+
+          // IndexedStack sekmeleri bellekte tuttugu icin sekmeye
+          // girmek kendiliginden yeni veri cekmiyor. Duyurulara
+          // gecildiginde bayat veriyi tazeliyoruz.
+          if (i == _duyuruSekmesi) _depo.duyurulariTazele();
         },
         destinations: const [
           NavigationDestination(

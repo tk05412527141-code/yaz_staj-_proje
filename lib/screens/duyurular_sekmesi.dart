@@ -74,6 +74,29 @@ class DuyurularSekmesi extends StatelessWidget {
               color: Renkler.metinSolgun,
             ),
           ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Container(
+                width: 6,
+                height: 6,
+                decoration: BoxDecoration(
+                  color: depo.duyurularBayatMi
+                      ? Renkler.metinSolgun
+                      : Renkler.canli,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                depo.duyuruGuncellemeMetni,
+                style: const TextStyle(
+                  fontSize: 11.5,
+                  color: Renkler.metinSolgun,
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -85,20 +108,20 @@ class DuyurularSekmesi extends StatelessWidget {
     if (depo.bultenYukleniyor) return const IskeletListe(adet: 4);
 
     if (depo.bultenHatasi != null) {
-      return DurumGorunumu(
+      return _cekilebilir(DurumGorunumu(
         ikon: Icons.cloud_off_rounded,
         ikonRengi: const Color(0xFFF85149),
         baslik: 'Bültenler alınamadı',
         aciklama: depo.bultenHatasi!,
         eylemYazisi: 'Tekrar dene',
-        onEylem: depo.bultenleriYenile,
-      );
+        onEylem: depo.duyurulariYenile,
+      ));
     }
 
     final bultenler = depo.bultenler;
 
     if (bultenler.isEmpty) {
-      return DurumGorunumu(
+      return _cekilebilir(DurumGorunumu(
         ikon: Icons.inbox_outlined,
         ikonRengi: Renkler.canli,
         baslik: 'Kayıt bulunamadı',
@@ -106,17 +129,14 @@ class DuyurularSekmesi extends StatelessWidget {
             '${BultenUretici.esikBuyukluk.toStringAsFixed(1)} ve üzeri '
             'deprem kaydı alınamadı.',
         eylemYazisi: 'Yenile',
-        onEylem: depo.bultenleriYenile,
-      );
+        onEylem: depo.duyurulariYenile,
+      ));
     }
 
     return RefreshIndicator(
       onRefresh: () async {
         HapticFeedback.lightImpact();
-        await Future.wait([
-          depo.bultenleriYenile(),
-          depo.haberleriYenile(),
-        ]);
+        await depo.duyurulariYenile();
       },
       color: Renkler.vurgu,
       backgroundColor: Renkler.yuzey,
@@ -170,6 +190,27 @@ class DuyurularSekmesi extends StatelessWidget {
             child: _bultenKarti(context, bultenler[i - 2]),
           );
         },
+      ),
+    );
+  }
+
+  /// Bos ve hata ekranlarinin da asagi cekilerek yenilenebilmesi icin.
+  ///
+  /// Kaydirilamayan bir icerikte RefreshIndicator calismaz; bu yuzden
+  /// icerigi ekran yuksekligine esit bir kaydirilabilir alana koyuyoruz.
+  Widget _cekilebilir(Widget cocuk) {
+    return RefreshIndicator(
+      onRefresh: () async {
+        HapticFeedback.lightImpact();
+        await depo.duyurulariYenile();
+      },
+      color: Renkler.vurgu,
+      backgroundColor: Renkler.yuzey,
+      child: LayoutBuilder(
+        builder: (context, sinirlar) => SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: SizedBox(height: sinirlar.maxHeight, child: cocuk),
+        ),
       ),
     );
   }
