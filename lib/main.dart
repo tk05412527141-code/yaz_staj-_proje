@@ -25,7 +25,7 @@ class DepremTakipUygulamasi extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Deprem Takip',
+      title: 'Depremin Nabzı',
       debugShowCheckedModeBanner: false,
 
       // Uygulama koyu tema uzerine tasarlandi; sistem ayarindan

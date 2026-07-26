@@ -1,5 +1,5 @@
 #!/bin/bash
-# Deprem Takip - derleme kontrolu
+# Depremin Nabzı - derleme kontrolu
 #
 # Bu dosyaya cift tikla. Uc adimi sirayla calistirir ve tum ciktiyi
 # kontrol-ciktisi.txt dosyasina yazar. O dosyayi bana yapistirman yeterli.
@@ -16,7 +16,7 @@ CIKTI="kontrol-ciktisi.txt"
 exec > >(tee "$CIKTI") 2>&1
 
 echo "=================================================="
-echo "  Deprem Takip - derleme kontrolu"
+echo "  Depremin Nabzı - derleme kontrolu"
 echo "  $(date '+%d.%m.%Y %H:%M')"
 echo "=================================================="
 echo

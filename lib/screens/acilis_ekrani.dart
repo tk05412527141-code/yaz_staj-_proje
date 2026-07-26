@@ -113,7 +113,7 @@ class _AcilisEkraniState extends State<AcilisEkrani>
     return Scaffold(
       backgroundColor: Renkler.zemin,
       body: Semantics(
-        label: 'Deprem Takip açılıyor',
+        label: 'Depremin Nabzı açılıyor',
         child: ExcludeSemantics(
           child: Center(
             child: Column(
@@ -156,7 +156,7 @@ class _AcilisEkraniState extends State<AcilisEkrani>
                     child: const Column(
                       children: [
                         Text(
-                          'Deprem Takip',
+                          'Depremin Nabzı',
                           style: TextStyle(
                             fontSize: 27,
                             fontWeight: FontWeight.w800,

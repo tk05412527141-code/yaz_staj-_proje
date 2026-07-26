@@ -1,4 +1,4 @@
-# 🌍 Deprem Takip
+# 🌍 Depremin Nabzı
 
 Türkiye ve çevresindeki son depremleri **AFAD** ve **Kandilli Rasathanesi** verileriyle gösteren Flutter mobil uygulaması.
 

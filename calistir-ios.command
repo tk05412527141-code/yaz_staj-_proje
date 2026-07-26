@@ -1,5 +1,5 @@
 #!/bin/bash
-# Deprem Takip - iOS Simulator'de calistirma (macOS)
+# Depremin Nabzı - iOS Simulator'de calistirma (macOS)
 # Bu dosyaya cift tiklayarak uygulamayi baslatabilirsin.
 #
 # Script gerekli kontrolleri yapar, eksikleri soyler ve
@@ -8,7 +8,7 @@
 cd "$(dirname "$0")" || exit 1
 
 echo "=================================================="
-echo "   Deprem Takip - iOS Simulator"
+echo "   Depremin Nabzı - iOS Simulator"
 echo "=================================================="
 echo
 

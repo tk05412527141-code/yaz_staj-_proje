@@ -60,7 +60,7 @@ class AcilDurumServisi {
       parcalar.add(ekNot.trim());
     }
 
-    parcalar.add('— Deprem Takip');
+    parcalar.add('— Depremin Nabzı uygulaması');
     return parcalar.join('\n');
   }
 
@@ -71,7 +71,7 @@ class AcilDurumServisi {
       parcalar.add('Konumum: ${konum.koordinatMetni}');
       parcalar.add(konum.haritaBaglantisi);
     }
-    parcalar.add('— Deprem Takip');
+    parcalar.add('— Depremin Nabzı uygulaması');
     return parcalar.join('\n');
   }
 

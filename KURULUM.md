@@ -270,7 +270,7 @@ Bulduğun her şeyi not et. Düzeltemediklerini README'nin "Bilinen Sınırlar" 
 3. GitHub'a gönder:
    ```bash
    git add .
-   git commit -m "Deprem Takip uygulamasi"
+   git commit -m "Depremin Nabzı uygulamasi"
    git push
    ```
 4. Son kontrol: Projeyi başka bir klasöre kopyalayıp bu dosyadaki adımlarla sıfırdan kurmayı dene

@@ -255,7 +255,7 @@ class AyarlarSekmesi extends StatelessWidget {
               _kutu(
                 child: Column(
                   children: [
-                    _satir(Icons.info_outline, 'Uygulama', 'Deprem Takip 1.0'),
+                    _satir(Icons.info_outline, 'Uygulama', 'Depremin Nabzı 1.0'),
                     const Divider(),
                     _satir(Icons.public, 'Harita', 'OpenStreetMap'),
                     const Divider(),
