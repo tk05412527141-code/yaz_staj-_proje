@@ -67,9 +67,22 @@ class BultenUretici {
 
   /// Bulten uretilmesi icin gereken en kucuk buyukluk.
   ///
-  /// 4.0 alti depremler cok sik oluyor ve bulten degeri tasimiyor;
-  /// listede zaten gorunuyorlar.
-  static const esikBuyukluk = 4.0;
+  /// ILK DEGER 4.0'DI VE SAYFA SUREKLI BOS KALIYORDU.
+  ///   Turkiye'de rastgele bir 24 saatte 4.0+ deprem cogu zaman hic
+  ///   olmuyor. Ustelik varsayilan kaynak Kandilli ve o API yalnizca
+  ///   son 24 saati veriyor (bkz. DepremServisi). Ikisi birlesince
+  ///   duyurular sekmesi olu bir sekmeye donusuyordu.
+  ///
+  ///   3.0: hissedilmeye baslanan esik. Icerik uretiyor ama her kucuk
+  ///   sarsintiyi "duyuru" yapacak kadar da dusuk degil.
+  static const esikBuyukluk = 3.0;
+
+  /// Esigi gecen hic deprem yoksa gosterilecek en buyuk kayit sayisi.
+  ///
+  /// Bos bir sekme kullaniciya hicbir sey soylemiyor. Bunun yerine
+  /// "belirgin bir deprem olmadi, en buyukleri sunlar" demek hem
+  /// bilgilendirici hem durust.
+  static const yedekBultenSayisi = 3;
 
   /// Artci sayilirken kullanilan yaricap (km).
   ///
