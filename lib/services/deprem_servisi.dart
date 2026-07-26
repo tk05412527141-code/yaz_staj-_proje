@@ -7,11 +7,30 @@ import '../models/deprem.dart';
 
 /// Hangi kurumdan veri cekilecegini belirtir.
 enum VeriKaynagi {
-  afad('AFAD'),
-  kandilli('Kandilli');
+  /// Resmi kurum. Tarih araligi parametresi kabul ediyor, gecmise
+  /// gidilebiliyor. Buna karsilik zaman zaman gecikmeli yayinliyor.
+  afad('AFAD', null),
+
+  /// Genelde daha guncel, ama API YALNIZCA SON 24 SAATI veriyor.
+  /// (Yanitin metadata alanindaki date_starts/date_ends tam 24 saat
+  /// arayla geliyor ve limit ne olursa olsun bu degismiyor.)
+  ///
+  /// Bu yuzden Kandilli seciliyken "Son 7 gun" gibi filtreler sessizce
+  /// etkisiz kaliyordu; arayuzde bunu artik soyluyoruz.
+  kandilli('Kandilli', 1);
 
   final String ad;
-  const VeriKaynagi(this.ad);
+
+  /// Kaynagin saglayabildigi en fazla gecmis (gun). null = sinirsiz.
+  final int? kapsamGunSiniri;
+
+  const VeriKaynagi(this.ad, this.kapsamGunSiniri);
+
+  /// Verilen gun sayisi bu kaynagin kapsayabildiginden fazla mi?
+  bool kapsamiAsiyorMu(int gunSayisi) {
+    final sinir = kapsamGunSiniri;
+    return sinir != null && gunSayisi > sinir;
+  }
 }
 
 /// Bir veri cekme isleminin sonucu ve KAPSAMA bilgisi.

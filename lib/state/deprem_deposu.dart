@@ -48,10 +48,18 @@ enum Siralama {
 /// Ekranlar bunu ListenableBuilder ile dinliyor.
 class DepremDeposu extends ChangeNotifier {
   // --- Ham veri ---
-  List<Deprem> _ham = [];
+  DepremYanit? _yanit;
   bool yukleniyor = true;
   String? hata;
   DateTime? sonGuncelleme;
+
+  /// Listeyi besleyen ham kayitlar.
+  List<Deprem> get _ham => _yanit?.depremler ?? const [];
+
+  // --- Duyuru bultenleri (AYRI sorgu) ---
+  List<Bulten> _bultenler = const [];
+  bool bultenYukleniyor = true;
+  String? bultenHatasi;
 
   // --- Sunucuya giden filtreler (degisince yeniden veri cekilir) ---
   VeriKaynagi kaynak = VeriKaynagi.kandilli;
@@ -145,6 +153,36 @@ class DepremDeposu extends ChangeNotifier {
   int get acikHatirlatmaSayisi => hazirlik.acikHatirlatmalar.length;
 
   // ------------------------------------------------------------------
+  // Kaynak kapsam uyarisi
+  // ------------------------------------------------------------------
+
+  /// Secili kaynak, secili zaman araligini karsilayamiyorsa uyari metni.
+  ///
+  /// Kandilli API'si yalnizca son 24 saati veriyor. Kullanici "Son 7 gun"
+  /// secip 24 saatlik veri gormesi ve bunu bilmemesi kotu; sessiz
+  /// calismayan bir filtre, bozuk bir filtreden daha yanilticidir.
+  String? get kapsamUyarisi {
+    // 1. Kaynagin bilinen sabit siniri
+    if (kaynak.kapsamiAsiyorMu(gunSayisi)) {
+      return '${kaynak.ad} yalnızca son 24 saati veriyor. '
+          'Daha geniş aralık için AFAD kaynağına geç.';
+    }
+
+    // 2. Gelen verinin GERCEKTEN araligi kapsayip kapsamadigi.
+    //    Sabit sinir bilinmese bile kayit sayisi sinira dayandiysa
+    //    elimizde eksik veri var demektir.
+    final y = _yanit;
+    if (y != null && y.kapsamEksik) {
+      return 'Bu aralığın tamamı alınamadı; elimizdeki veri son '
+          '${y.kapsananGun} günü kapsıyor.';
+    }
+
+    return null;
+  }
+
+  bool get kapsamUyarisiVar => kapsamUyarisi != null;
+
+  // ------------------------------------------------------------------
   // Acil durum kisileri
   // ------------------------------------------------------------------
 
@@ -183,15 +221,11 @@ class DepremDeposu extends ChangeNotifier {
   // Duyuru bultenleri
   // ------------------------------------------------------------------
 
+  /// Bultenlerin kac gunluk pencereden uretildigi.
+  static const bultenGunSayisi = 30;
+
   /// Onemli depremler icin uretilmis bultenler.
-  ///
-  /// Her cagrida yeniden hesaplaniyor. Liste boyutu (en fazla birkac yuz
-  /// kayit) bunun icin fazlasiyla kucuk; onbelleklemek karmasikligi
-  /// kazancindan buyuk olurdu.
-  List<Bulten> get bultenler => BultenUretici.uret(
-        depremler: _ham,
-        konumlar: konumlar,
-      );
+  List<Bulten> get bultenler => _bultenler;
 
   // ------------------------------------------------------------------
   // Kayitli konumlar
@@ -207,12 +241,24 @@ class DepremDeposu extends ChangeNotifier {
 
   Future<void> konumEkle(KayitliKonum konum) async {
     konumlar = [...konumlar, konum];
+    _bultenleriYenidenHesapla();
     notifyListeners();
     await _konumlariKaydet();
   }
 
+  /// Konumlar degistiginde bultenlerdeki "yerlerinizde" bolumu de
+  /// guncellenmeli. Ag istegi gerekmiyor, eldeki veriden hesapliyoruz.
+  void _bultenleriYenidenHesapla() {
+    if (_bultenler.isEmpty) return;
+    _bultenler = BultenUretici.uret(
+      depremler: _bultenler.map((b) => b.deprem).toList(),
+      konumlar: konumlar,
+    );
+  }
+
   Future<void> konumSil(String id) async {
     konumlar = konumlar.where((k) => k.id != id).toList();
+    _bultenleriYenidenHesapla();
     // Silinen konum son filtreyi anlamsiz birakmasin
     if (konumlar.isEmpty && hizliFiltre == HizliFiltre.yerlerim) {
       hizliFiltre = HizliFiltre.tumu;
@@ -223,6 +269,7 @@ class DepremDeposu extends ChangeNotifier {
 
   Future<void> konumGuncelle(KayitliKonum yeni) async {
     konumlar = konumlar.map((k) => k.id == yeni.id ? yeni : k).toList();
+    _bultenleriYenidenHesapla();
     notifyListeners();
     await _konumlariKaydet();
   }
@@ -309,7 +356,7 @@ class DepremDeposu extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _ham = await DepremServisi.getir(
+      _yanit = await DepremServisi.getir(
         kaynak: kaynak,
         gunSayisi: gunSayisi,
         minBuyukluk: minBuyukluk,
@@ -319,6 +366,46 @@ class DepremDeposu extends ChangeNotifier {
       hata = e.toString().replaceFirst('Exception: ', '');
     } finally {
       yukleniyor = false;
+      notifyListeners();
+    }
+
+    // Bultenler ana listeyi bekletmesin
+    unawaited(bultenleriYenile());
+  }
+
+  /// Duyuru bultenlerini AYRI bir sorguyla yeniler.
+  ///
+  /// NEDEN AYRI?
+  ///   Ana liste "son 7 gun, tum buyuklukler" istiyor; bultenler ise
+  ///   "son 30 gunun onemli depremleri". Ayni veriden uretilemez:
+  ///   30 gunluk tum depremler on binlerce kayit olurdu.
+  ///
+  /// NEDEN HER ZAMAN AFAD?
+  ///   Kandilli endpoint'i tarih araligi kabul etmiyor ve yalnizca son
+  ///   24 saati veriyor. Kullanici Kandilli secmis olsa bile 30 gunluk
+  ///   bulten uretmenin baska yolu yok. AFAD ise sunucu tarafinda hem
+  ///   tarih hem minmag filtresi destekliyor: 30 gun / 3.0+ sorgusu
+  ///   yaklasik 85 kayit donuyor.
+  Future<void> bultenleriYenile() async {
+    bultenYukleniyor = true;
+    bultenHatasi = null;
+    notifyListeners();
+
+    try {
+      final yanit = await DepremServisi.bultenIcinGetir(
+        kaynak: VeriKaynagi.afad,
+        gunSayisi: bultenGunSayisi,
+        minBuyukluk: BultenUretici.esikBuyukluk,
+      );
+      _bultenler = BultenUretici.uret(
+        depremler: yanit.depremler,
+        konumlar: konumlar,
+      );
+    } catch (e) {
+      bultenHatasi = e.toString().replaceFirst('Exception: ', '');
+      _bultenler = const [];
+    } finally {
+      bultenYukleniyor = false;
       notifyListeners();
     }
   }

@@ -6,8 +6,20 @@ import '../utils/siddet_hesabi.dart';
 class Bulten {
   final Deprem deprem;
 
-  /// Bu depremden sonra ayni bolgede olan daha kucuk depremler
+  /// Bu depremden sonra ayni bolgede olan daha kucuk depremler.
+  ///
+  /// ONEMLI KAPSAM SINIRI
+  ///   Bulten verisi [BultenUretici.esikBuyukluk] esigiyle cekiliyor,
+  ///   yani esik altindaki artcilar veri setinde HIC YOK. Gercek artci
+  ///   sayisi bundan cok daha fazladir.
+  ///
+  ///   Bu yuzden arayuzde "yaklasik N artci" DEMIYORUZ; "3.0+ artci: N"
+  ///   diyoruz. Aksi halde kullanici gercek artci sayisini cok dusuk
+  ///   saniyor olurdu.
   final int artciSayisi;
+
+  /// Artcilarin sayildigi en kucuk buyukluk (etiketleme icin).
+  final double artciEsigi;
 
   /// Artcilarin en buyugu (yoksa 0)
   final double enBuyukArtci;
@@ -18,16 +30,29 @@ class Bulten {
   /// Kullanicinin yerlerindeki tahmini etki (yer yoksa bos)
   final List<({KayitliKonum konum, SiddetSonucu sonuc})> yerEtkileri;
 
+  /// Bu deprem bulten esigini gecti mi?
+  ///
+  /// false ise: esigi gecen hic deprem yoktu, bu kayit "en buyukleri"
+  /// yedegi olarak gosteriliyor. Arayuz bunu farkli etiketliyor —
+  /// kullanici siradan bir sarsintiyi "onemli duyuru" sanmamali.
+  final bool esigiGecti;
+
   const Bulten({
     required this.deprem,
     required this.artciSayisi,
     required this.enBuyukArtci,
     required this.egilim,
     required this.yerEtkileri,
+    this.esigiGecti = true,
+    this.artciEsigi = BultenUretici.esikBuyukluk,
   });
 
+  /// "3.0+ artçı: 4" gibi dogru etiket.
+  String get artciMetni =>
+      '${artciEsigi.toStringAsFixed(1)}+ artçı: $artciSayisi';
+
   /// Bultenin onem derecesi - siralamada ve gorsel vurguda kullanilir.
-  bool get onemli => deprem.buyukluk >= 5.0;
+  bool get onemli => esigiGecti && deprem.buyukluk >= 5.0;
 
   /// En cok etkilenen kayitli yer (varsa)
   ({KayitliKonum konum, SiddetSonucu sonuc})? get enCokEtkilenen {
@@ -108,42 +133,59 @@ class BultenUretici {
     final an = simdi ?? DateTime.now();
 
     // Esigi gecen depremler bulten adayi
-    final adaylar = depremler
+    var adaylar = depremler
         .where((d) => d.buyukluk >= esikBuyukluk)
         .toList()
       ..sort((a, b) => b.tarih.compareTo(a.tarih));
 
+    // Esigi gecen yoksa en buyukleri yedek olarak goster.
+    // Bos sekme yerine "belirgin deprem olmadi, en buyukleri sunlar".
+    var yedekMi = false;
+    if (adaylar.isEmpty) {
+      yedekMi = true;
+      final siraliBuyukluk = [...depremler]
+        ..sort((a, b) => b.buyukluk.compareTo(a.buyukluk));
+      adaylar = siraliBuyukluk.take(yedekBultenSayisi).toList()
+        ..sort((a, b) => b.tarih.compareTo(a.tarih));
+    }
+
     final bultenler = <Bulten>[];
 
     for (final ana in adaylar) {
-      // Bu depremin artcilari: SONRASINDA olan, DAHA KUCUK ve
-      // yakin konumdaki depremler
+      // Artci penceresi disindaki (cok eski) depremler icin artci
+      // saymiyoruz. Bu kontrol DONGUNUN DISINDA olmali: [ana]'ya bagli,
+      // [d]'ye degil. Icerideyken dongu degismezi oldugu icin ya hic
+      // calisiyor ya da ilk turda kiriliyordu.
+      final pencereIcinde = an.difference(ana.tarih) <= artciPenceresi;
+
       var sayi = 0;
       var enBuyuk = 0.0;
       var sonAltiSaat = 0;
       var oncekiAltiSaat = 0;
 
-      for (final d in depremler) {
-        if (!d.tarih.isAfter(ana.tarih)) continue;
-        if (d.buyukluk >= ana.buyukluk) continue;
-        if (an.difference(ana.tarih) > artciPenceresi) break;
+      if (pencereIcinde) {
+        for (final d in depremler) {
+          // Artci: ana depremden SONRA, DAHA KUCUK, yakin konumda
+          if (!d.tarih.isAfter(ana.tarih)) continue;
+          if (d.buyukluk >= ana.buyukluk) continue;
 
-        final mesafe = SiddetHesabi.mesafeKm(
-          ana.enlem,
-          ana.boylam,
-          d.enlem,
-          d.boylam,
-        );
-        if (mesafe > artciYaricapKm) continue;
+          final mesafe = SiddetHesabi.mesafeKm(
+            ana.enlem,
+            ana.boylam,
+            d.enlem,
+            d.boylam,
+          );
+          if (mesafe > artciYaricapKm) continue;
 
-        sayi++;
-        if (d.buyukluk > enBuyuk) enBuyuk = d.buyukluk;
+          sayi++;
+          if (d.buyukluk > enBuyuk) enBuyuk = d.buyukluk;
 
-        final gecen = an.difference(d.tarih);
-        if (gecen.inHours < 6) {
-          sonAltiSaat++;
-        } else if (gecen.inHours < 12) {
-          oncekiAltiSaat++;
+          final gecen = an.difference(d.tarih);
+          if (gecen.inHours < 6) {
+            sonAltiSaat++;
+          } else if (gecen.inHours < 12) {
+            oncekiAltiSaat++;
+          }
         }
       }
 
@@ -153,6 +195,7 @@ class BultenUretici {
         enBuyukArtci: enBuyuk,
         egilim: _egilimBul(sayi, sonAltiSaat, oncekiAltiSaat),
         yerEtkileri: _yerEtkileri(ana, konumlar),
+        esigiGecti: !yedekMi,
       ));
     }
 
@@ -207,7 +250,7 @@ class BultenUretici {
 
     if (b.artciSayisi > 0) {
       satirlar.add(
-        'Artçı: ${b.artciSayisi} kayıt, en büyüğü '
+        '${b.artciMetni}, en büyüğü '
         '${b.enBuyukArtci.toStringAsFixed(1)} · ${b.egilim.etiket}',
       );
     }

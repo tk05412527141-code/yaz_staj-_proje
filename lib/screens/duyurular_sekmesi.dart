@@ -63,8 +63,9 @@ class DuyurularSekmesi extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
+            'Son ${DepremDeposu.bultenGunSayisi} günde '
             '${BultenUretici.esikBuyukluk.toStringAsFixed(1)} ve üzeri '
-            'depremler için ${depo.kaynak.ad} verisinden üretilen bültenler',
+            'depremler · AFAD resmî verisi',
             style: const TextStyle(
               fontSize: 12.5,
               height: 1.4,
@@ -77,16 +78,18 @@ class DuyurularSekmesi extends StatelessWidget {
   }
 
   Widget _icerik(BuildContext context) {
-    if (depo.yukleniyor) return const IskeletListe(adet: 4);
+    // Bultenler ana listeden AYRI cekiliyor, o yuzden kendi
+    // yukleme/hata durumunu kullaniyoruz.
+    if (depo.bultenYukleniyor) return const IskeletListe(adet: 4);
 
-    if (depo.hata != null) {
+    if (depo.bultenHatasi != null) {
       return DurumGorunumu(
         ikon: Icons.cloud_off_rounded,
         ikonRengi: const Color(0xFFF85149),
-        baslik: 'Veriye ulaşılamadı',
-        aciklama: depo.hata!,
+        baslik: 'Bültenler alınamadı',
+        aciklama: depo.bultenHatasi!,
         eylemYazisi: 'Tekrar dene',
-        onEylem: depo.yenile,
+        onEylem: depo.bultenleriYenile,
       );
     }
 
@@ -96,32 +99,69 @@ class DuyurularSekmesi extends StatelessWidget {
       return DurumGorunumu(
         ikon: Icons.inbox_outlined,
         ikonRengi: Renkler.canli,
-        baslik: 'Bülten yok',
-        aciklama: 'Seçili zaman aralığında '
+        baslik: 'Kayıt bulunamadı',
+        aciklama: 'Son ${DepremDeposu.bultenGunSayisi} günde '
             '${BultenUretici.esikBuyukluk.toStringAsFixed(1)} ve üzeri '
-            'deprem kaydı bulunmuyor. Bu iyi haber.\n\n'
-            'Daha geniş bir aralık için Liste sekmesindeki filtreleri '
-            'kullanabilirsin.',
+            'deprem kaydı alınamadı.',
         eylemYazisi: 'Yenile',
-        onEylem: depo.yenile,
+        onEylem: depo.bultenleriYenile,
       );
     }
 
     return RefreshIndicator(
       onRefresh: () async {
         HapticFeedback.lightImpact();
-        await depo.yenile();
+        await depo.bultenleriYenile();
       },
       color: Renkler.vurgu,
       backgroundColor: Renkler.yuzey,
       child: ListView.builder(
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
-        itemCount: bultenler.length + 1,
+        itemCount: bultenler.length + 2,
         itemBuilder: (context, i) {
-          if (i == bultenler.length) return _kaynakNotu();
+          if (i == 0) {
+            // Esigi gecen deprem yoksa bunu acikca soyle; kullanici
+            // siradan bir sarsintiyi "onemli duyuru" sanmamali
+            final yedek = bultenler.first.esigiGecti == false;
+            if (!yedek) return const SizedBox.shrink();
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Container(
+                padding: const EdgeInsets.all(13),
+                decoration: BoxDecoration(
+                  color: Renkler.canli.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Renkler.canli.withValues(alpha: 0.35),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.check_circle_outline,
+                        size: 18, color: Renkler.canli),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Son ${DepremDeposu.bultenGunSayisi} günde '
+                        '${BultenUretici.esikBuyukluk.toStringAsFixed(1)} ve '
+                        'üzeri deprem olmadı. Aşağıda dönemin en büyükleri '
+                        'var.',
+                        style: const TextStyle(
+                          fontSize: 12.5,
+                          height: 1.45,
+                          color: Renkler.metin,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+          if (i == bultenler.length + 1) return _kaynakNotu();
           return Padding(
             padding: const EdgeInsets.only(bottom: 12),
-            child: _bultenKarti(context, bultenler[i]),
+            child: _bultenKarti(context, bultenler[i - 1]),
           );
         },
       ),
@@ -254,8 +294,7 @@ class DuyurularSekmesi extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Yaklaşık ${b.artciSayisi} artçı · '
-                              'en büyüğü '
+                              '${b.artciMetni} · en büyüğü '
                               '${b.enBuyukArtci.toStringAsFixed(1)}',
                               style: const TextStyle(
                                 fontSize: 13,
@@ -265,9 +304,11 @@ class DuyurularSekmesi extends StatelessWidget {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              b.egilim.etiket,
+                              '${b.egilim.etiket} · daha küçük artçılar '
+                              'bu sayıya dahil değil',
                               style: TextStyle(
-                                fontSize: 12,
+                                fontSize: 11.5,
+                                height: 1.35,
                                 color: b.egilim == ArtciEgilimi.azaliyor
                                     ? Renkler.canli
                                     : Renkler.metinSolgun,
@@ -394,9 +435,15 @@ class DuyurularSekmesi extends StatelessWidget {
           ),
           SizedBox(height: 9),
           Text(
-            'Deprem parametreleri AFAD ve Kandilli\'nin resmî verilerinden '
-            'doğrudan alınır. Artçı sayımı ve hissedilirlik tahmini bu '
-            'veriden uygulama içinde hesaplanır — yaklaşık değerlerdir.\n\n'
+            'Deprem parametreleri AFAD\'ın resmî verisinden doğrudan '
+            'alınır. Bültenler her zaman AFAD kaynağını kullanır; Kandilli '
+            'API\'si tarih aralığı kabul etmediği ve yalnızca son 24 saati '
+            'verdiği için 30 günlük bülten üretilemiyor.\n\n'
+            'Artçı sayımı bu veri kümesi üzerinden yapılır: bültenler '
+            '3.0 eşiğiyle çekildiği için daha küçük artçılar sayıya '
+            'girmez. Gerçek artçı sayısı gösterilenden fazladır.\n\n'
+            'Hissedilirlik tahmini de bu veriden hesaplanır ve '
+            'yaklaşıktır.\n\n'
             'Bunlar kurumların basın açıklaması değildir. Resmî '
             'açıklamalar için AFAD ve Kandilli Rasathanesi\'nin kendi '
             'kaynaklarını takip edin.',

@@ -389,6 +389,11 @@ class _ListeSekmesiState extends State<ListeSekmesi> {
   /// depremleri dagilir), o yuzden bu durumda duz liste kullaniyoruz.
   List<Widget> _sliverlar(DepremDeposu depo, List<Deprem> liste) {
     final sliverlar = <Widget>[
+      // Secili kaynak zaman araligini karsilayamiyorsa uyar.
+      // Sessizce calismayan bir filtre, bozuk bir filtreden daha
+      // yanilticidir: kullanici 30 gun sanip 24 saat gorur.
+      if (depo.kapsamUyarisiVar)
+        SliverToBoxAdapter(child: _kapsamUyarisi(depo)),
       SliverToBoxAdapter(
         child: DurumKarti(
           depo: depo,
@@ -439,6 +444,53 @@ class _ListeSekmesiState extends State<ListeSekmesi> {
           },
         );
       },
+    );
+  }
+
+  Widget _kapsamUyarisi(DepremDeposu depo) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFE3B341).withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: const Color(0xFFE3B341).withValues(alpha: 0.35),
+          ),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.info_outline,
+                size: 17, color: Color(0xFFE3B341)),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                depo.kapsamUyarisi!,
+                style: const TextStyle(
+                  fontSize: 12.5,
+                  height: 1.4,
+                  color: Renkler.metin,
+                ),
+              ),
+            ),
+            if (depo.kaynak != VeriKaynagi.afad) ...[
+              const SizedBox(width: 6),
+              TextButton(
+                onPressed: () {
+                  HapticFeedback.selectionClick();
+                  depo.kaynakDegistir(VeriKaynagi.afad);
+                },
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  minimumSize: const Size(0, 36),
+                ),
+                child: const Text('AFAD\'a geç'),
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 
