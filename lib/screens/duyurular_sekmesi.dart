@@ -66,8 +66,8 @@ class DuyurularSekmesi extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'TRT Haber\'den deprem haberleri ve AFAD resmî verisinden '
-            'üretilen bültenler',
+            'TRT Haber\'den deprem haberleri · AFAD ve Kandilli '
+            'verilerinden üretilen bültenler',
             style: const TextStyle(
               fontSize: 12.5,
               height: 1.4,
@@ -88,11 +88,17 @@ class DuyurularSekmesi extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 6),
-              Text(
-                depo.duyuruGuncellemeMetni,
-                style: const TextStyle(
-                  fontSize: 11.5,
-                  color: Renkler.metinSolgun,
+              Expanded(
+                child: Text(
+                  // Iki ayri bilgi: ne zaman cektik + veri ne kadar eski
+                  '${depo.duyuruGuncellemeMetni}'
+                  ' · en yeni kayıt ${depo.bultenVeriYasiMetni} önce',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 11.5,
+                    color: Renkler.metinSolgun,
+                  ),
                 ),
               ),
             ],
@@ -706,10 +712,12 @@ class DuyurularSekmesi extends StatelessWidget {
           ),
           SizedBox(height: 9),
           Text(
-            'Deprem parametreleri AFAD\'ın resmî verisinden doğrudan '
-            'alınır. Bültenler her zaman AFAD kaynağını kullanır; Kandilli '
-            'API\'si tarih aralığı kabul etmediği ve yalnızca son 24 saati '
-            'verdiği için 30 günlük bülten üretilemiyor.\n\n'
+            'Bültenler iki kaynağı birleştirir: AFAD 30 günlük derinliği '
+            'verir, Kandilli ise son 24 saatin tazeliğini. AFAD zaman '
+            'zaman saatlerce gecikmeli yayınladığı için tek başına '
+            'kullanıldığında son yarım gün eksik kalıyordu.\n\n'
+            'Aynı deprem iki kaynakta da varsa tek kayda indirilir '
+            've AFAD\'ın resmî parametreleri korunur.\n\n'
             'Artçı sayımı bu veri kümesi üzerinden yapılır: bültenler '
             '3.0 eşiğiyle çekildiği için daha küçük artçılar sayıya '
             'girmez. Gerçek artçı sayısı gösterilenden fazladır.\n\n'

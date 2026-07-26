@@ -95,6 +95,10 @@ class DepremDeposu extends ChangeNotifier {
     _periyodikZamanlayici = Timer.periodic(periyodikAralik, (_) {
       // Zaten yukleniyorsa ustune istek atma
       if (!yukleniyor) yenile();
+
+      // Duyurular da tazelensin. duyurulariTazele() bayatlik
+      // kontrolu yaptigi icin her turda istek atilmiyor.
+      duyurulariTazele();
     });
   }
 
@@ -125,12 +129,14 @@ class DepremDeposu extends ChangeNotifier {
   /// Duyurular (haber + bulten) en son ne zaman cekildi.
   DateTime? duyuruSonGuncelleme;
 
-  /// Veri kac dakika sonra "bayat" sayilsin.
+  /// Duyurular kac dakika sonra "bayat" sayilsin.
   ///
-  /// Deprem haberi cok sik degismiyor; her sekme gecisinde istek atmak
-  /// hem gereksiz hem de kaynagin sunucusuna yuk. 10 dakika, tazelikle
-  /// istek sayisi arasinda makul bir denge.
-  static const bayatlamaSuresi = Duration(minutes: 10);
+  /// 10 dakikaydi ve fazla uzundu: bultenler artik Kandilli'nin ~5
+  /// dakikalik verisini de iceriyor, 10 dakika beklemek o tazeligi
+  /// bosa harciyordu. 3 dakika, kaynagin gecikmesinin altinda kalarak
+  /// yeni kaydi hizla yakaliyor ama her sekme gecisinde istek de
+  /// atmiyor.
+  static const bayatlamaSuresi = Duration(minutes: 3);
 
   bool get duyurularBayatMi {
     final t = duyuruSonGuncelleme;
@@ -328,6 +334,28 @@ class DepremDeposu extends ChangeNotifier {
 
   /// Onemli depremler icin uretilmis bultenler.
   List<Bulten> get bultenler => _bultenler;
+
+  /// Bulten verisindeki EN YENI depremin yasi.
+  ///
+  /// "Ne zaman guncellendi" ile "veri ne kadar taze" farkli seyler:
+  /// az once guncellemis olabiliriz ama kaynak saatlerce geriden
+  /// geliyorsa veri yine bayattir. Kullaniciya ikisini de gosteriyoruz.
+  Duration? get bultenVeriYasi {
+    if (_bultenler.isEmpty) return null;
+    final enYeni = _bultenler
+        .map((b) => b.deprem.tarih)
+        .reduce((a, b) => a.isAfter(b) ? a : b);
+    final fark = DateTime.now().difference(enYeni);
+    return fark.isNegative ? Duration.zero : fark;
+  }
+
+  String get bultenVeriYasiMetni {
+    final t = bultenVeriYasi;
+    if (t == null) return '—';
+    if (t.inMinutes < 60) return '${t.inMinutes} dk';
+    if (t.inHours < 24) return '${t.inHours} saat';
+    return '${t.inDays} gün';
+  }
 
   // ------------------------------------------------------------------
   // Kayitli konumlar

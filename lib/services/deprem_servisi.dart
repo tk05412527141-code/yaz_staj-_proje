@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../models/deprem.dart';
+import '../utils/siddet_hesabi.dart';
 
 /// Hangi kurumdan veri cekilecegini belirtir.
 enum VeriKaynagi {
@@ -258,16 +259,116 @@ class DepremServisi {
     required VeriKaynagi kaynak,
     required int gunSayisi,
     required double minBuyukluk,
-  }) {
-    return getir(
-      kaynak: kaynak,
-      gunSayisi: gunSayisi,
-      minBuyukluk: minBuyukluk,
-      // Kandilli tarih/buyukluk filtresi almadigi icin daha genis bir
-      // pencere istiyoruz; AFAD'da bu sinir zaten asilmaz.
-      kayitSiniri: kaynak == VeriKaynagi.afad ? 500 : 2000,
+  }) async {
+    final simdi = DateTime.now();
+    final baslangic = simdi.subtract(Duration(days: gunSayisi));
+
+    // AFAD: 30 gunluk DERINLIK. Sunucu tarafinda tarih + minmag
+    // filtresi destekledigi icin uzun araligi az kayitla veriyor.
+    // Ama olcumde ~11.5 saat GERIDEN geldigi goruldu.
+    Future<DepremYanit?> dene({
+      required VeriKaynagi k,
+      required int gun,
+      required int sinir,
+    }) async {
+      try {
+        return await getir(
+          kaynak: k,
+          gunSayisi: gun,
+          minBuyukluk: minBuyukluk,
+          kayitSiniri: sinir,
+        );
+      } catch (_) {
+        return null;
+      }
+    }
+
+    final afadIstek = dene(k: VeriKaynagi.afad, gun: gunSayisi, sinir: 500);
+
+    // Kandilli: son 24 saatin TAZELIGI (~5 dakika).
+    // Tek basina 30 gunu veremez ama AFAD'in gecikmesinde kalan
+    // boslugu tam olarak bu dolduruyor.
+    final kandilliIstek = dene(k: VeriKaynagi.kandilli, gun: 1, sinir: 2000);
+
+    final sonuclar = await Future.wait([afadIstek, kandilliIstek]);
+    final afad = sonuclar[0];
+    final kandilli = sonuclar[1];
+
+    if (afad == null && kandilli == null) {
+      throw Exception(
+        'Bülten verisi alınamadı. İnternet bağlantınızı kontrol edin.',
+      );
+    }
+
+    final birlesik = birlestir(
+      oncelikli: afad?.depremler ?? const [],
+      ek: kandilli?.depremler ?? const [],
+    );
+
+    return DepremYanit(
+      depremler: birlesik,
+      istenenBaslangic: baslangic,
+      kayitSiniri: 500,
+      kaynak: afad != null && kandilli != null
+          ? VeriKaynagi.otomatik
+          : (afad != null ? VeriKaynagi.afad : VeriKaynagi.kandilli),
     );
   }
+
+  /// Iki listeyi birlestirip AYNI depremin iki kaydini tekillestirir.
+  ///
+  /// NEDEN BURADA BIRLESTIRME GUVENLI?
+  ///   Ana listede birlestirmekten kacinmistik: binlerce kayitta
+  ///   eslestirme hatasi uydurma kayit uretebilirdi. Bultenlerde ise
+  ///   esik 3.0+ oldugu icin elde birkac dusuzine kayit var; hem risk
+  ///   dusuk hem de sonuc gozle dogrulanabilir.
+  ///
+  /// AYNI DEPREM SAYILMA KURALI
+  ///   Zaman farki <= 120 saniye VE mesafe <= 50 km.
+  ///   Iki kurum ayni depremi biraz farkli zaman ve koordinatla
+  ///   raporluyor; bu tolerans o farki karsiliyor ama arka arkaya
+  ///   olan AYRI depremleri birlestirecek kadar genis degil.
+  ///
+  ///   Cakisma halinde [oncelikli] listedeki kayit korunur (AFAD:
+  ///   resmi parametreler).
+  static List<Deprem> birlestir({
+    required List<Deprem> oncelikli,
+    required List<Deprem> ek,
+  }) {
+    final sonuc = [...oncelikli];
+
+    for (final aday in ek) {
+      var kopya = false;
+      for (final mevcut in oncelikli) {
+        if (ayniDepremMi(aday, mevcut)) {
+          kopya = true;
+          break;
+        }
+      }
+      if (!kopya) sonuc.add(aday);
+    }
+
+    sonuc.sort((a, b) => b.tarih.compareTo(a.tarih));
+    return sonuc;
+  }
+
+  /// Iki kaydin ayni depremi gosterip gostermedigi.
+  static const ayniDepremZamanToleransi = Duration(seconds: 120);
+  static const ayniDepremMesafeKm = 50.0;
+
+  static bool ayniDepremMi(Deprem a, Deprem b) {
+    final zamanFarki = a.tarih.difference(b.tarih).abs();
+    if (zamanFarki > ayniDepremZamanToleransi) return false;
+
+    final mesafe = SiddetHesabi.mesafeKm(
+      a.enlem,
+      a.boylam,
+      b.enlem,
+      b.boylam,
+    );
+    return mesafe <= ayniDepremMesafeKm;
+  }
+
 
   // ------------------------------------------------------------------
   // AFAD
