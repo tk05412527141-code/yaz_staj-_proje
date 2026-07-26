@@ -15,6 +15,7 @@ class TercihServisi {
   static const _kSiralama = 'siralama';
   static const _kKonumlar = 'kayitli_konumlar';
   static const _kTanitimGoruldu = 'tanitim_goruldu';
+  static const _kHazirlik = 'hazirlik_durumu';
 
   /// Kayitli tercihleri okur. Hic kayit yoksa bos map doner.
   ///
@@ -87,6 +88,26 @@ class TercihServisi {
     try {
       final p = await SharedPreferences.getInstance();
       await p.setString(_kKonumlar, kodlanmis);
+    } catch (_) {}
+  }
+
+  // ------------------------------------------------------------------
+  // Hazirlik durumu (JSON metni)
+  // ------------------------------------------------------------------
+
+  static Future<String?> hazirligiOku() async {
+    try {
+      final p = await SharedPreferences.getInstance();
+      return p.getString(_kHazirlik);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Future<void> hazirligiKaydet(String kodlanmis) async {
+    try {
+      final p = await SharedPreferences.getInstance();
+      await p.setString(_kHazirlik, kodlanmis);
     } catch (_) {}
   }
 

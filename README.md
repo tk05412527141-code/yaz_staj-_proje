@@ -8,6 +8,7 @@ Liste görünümü, harita üzerinde işaretçiler, büyüklük/tarih/konum filt
 
 ## Özellikler
 
+- **Hazırlık hatırlatmaları** — deprem çantası, tatbikat, ev güvenliği için periyodik bildirimler. Deprem olmadan önce işine yarayan bölüm; sunucu gerektirmez, tamamen cihazda çalışır.
 - **Özel uygulama ikonu ve animasyonlu açılış** — logo belirirken çevresinden sismik halkalar yayılır; yerel açılış ekranı da aynı koyu zeminde, beyaz parlama yok
 - **Yerlerim ve hissedilirlik tahmini** — ev, iş, ailenin evi gibi yerleri kaydedersin; her deprem için o noktalarda ne kadar hissedileceği tahmin edilir. "4.1" yerine **"Evinizden 340 km — hissetmeyeceksiniz"**.
 - **İlk açılış tanıtımı** — üç ekranda uygulamanın neden farklı olduğu anlatılır ve kullanıcı ilk yerini ekleyerek başlar
@@ -99,6 +100,50 @@ Kayıtlı konumlar **yalnızca telefonda** saklanıyor. Hiçbir sunucuya gönder
 
 ---
 
+## Bildirimler — Ne Yapabilir, Ne Yapamaz
+
+Bu konuda üç ayrı şey sıkça karıştırılıyor. Uygulama bu ayrımı kullanıcıya açıkça anlatıyor (**Hazırlık → Erken uyarı nasıl alınır?** ekranı).
+
+| | Durum | Bu uygulama |
+|---|---|---|
+| **Deprem tahmini** | Bilimsel olarak mümkün değil | Yapmıyor, iddia etmiyor |
+| **Erken uyarı** | Gerçek, ama sismik ağ gerektirir | Yapamıyor — kullanıcıyı gerçek çözümlere yönlendiriyor |
+| **Hazırlık hatırlatmaları** | Tamamen yapılabilir | ✅ Yapıyor |
+
+**Tahmin neden mümkün değil?** USGS, bugüne kadar hiçbir bilim insanının büyük bir depremi önceden bildiremediğini ve öngörülebilir gelecekte de bunu beklemediklerini belirtiyor. Bunu vaat eden bir uygulama yanıltıcı olur.
+
+**Erken uyarı neden bu altyapıyla yapılamaz?** Erken uyarı, hızlı ilerleyen P dalgası (5–7 km/sn) ile yıkıcı S dalgası (3–4 km/sn) arasındaki farktan yararlanır; veri ışık hızında gider. Bunun için sismik istasyon ağı ya da işletim sistemi seviyesinde erişim gerekiyor. Bu uygulama AFAD ve Kandilli'nin açık verilerini kullanıyor — o veriler deprem analiz edilip yayınlandıktan sonra geliyor. Test sırasında AFAD'ın saatlerce gecikebildiği görüldü; erken uyarı için dakikalar bile çok geç.
+
+Sahte bir erken uyarı vaadi vermek yerine, uygulama kullanıcıya Android deprem uyarılarını, iOS resmî uyarılarını ve AFAD Acil uygulamasını nasıl açacağını adım adım anlatıyor.
+
+### Hatırlatmalar nasıl çalışıyor?
+
+Cihaz bildirimleri "her 3 ayda bir" gibi uzun periyotları kendi başına tekrarlayamıyor. Yaklaşım:
+
+1. Her madde için **yalnızca bir sonraki tarih** planlanıyor
+2. Uygulama her açıldığında planlama yenileniyor
+
+Kullanıcı uygulamayı hiç açmasa bile planlanan bildirim gidiyor; açtığında bir sonraki kuruluyor. Ek altyapı gerektirmeyen, pratikte çalışan yöntem bu.
+
+Kontrol listesi hatırlatmaları besliyor: bir maddeyi işaretlediğinde `tamamlanma = şimdi` oluyor, periyodu dolunca hatırlatılıyor. Hiç işaretlenmemiş maddeler için 3 gün sonra nazik bir dürtme geliyor — hemen bildirim rahatsız edici, 90 gün beklemek anlamsız olurdu.
+
+### Sürüm tuzağı
+
+`flutter_local_notifications` sürümler arası API'yi sık değiştiriyor:
+
+| Sürüm | Gereksinim | Fark |
+|---|---|---|
+| 21.x | Flutter 3.38+ | Projenin hedefinden çok yeni |
+| 20.x | Flutter 3.32+ | Tüm parametreler adlandırılmışa çevrildi |
+| **19.x** | **Flutter 3.22+** | **Seçilen** — API 19.x boyunca sabit |
+| 18.x | Flutter 3.13+ | `uiLocalNotificationDateInterpretation` hâlâ var |
+
+Bu yüzden `^19.0.0`'a sabitlendi. Caret 20.0.0'a geçmiyor, yani API şekli garanti.
+
+Zamanlama `AndroidScheduleMode.inexactAllowWhileIdle` ile yapılıyor — `SCHEDULE_EXACT_ALARM` izni gerektirmiyor. Hazırlık hatırlatmalarında dakika hassasiyeti gerekmediği için doğru seçim; sistem pil dostu bir zamanda gönderiyor.
+
+---
+
 ## Tasarım Kararları
 
 **Koyu tema, tek seçenek.** Deprem/afet uygulamalarının yaygın görsel dili koyu zemin. Büyüklük renkleri koyu üzerinde çok daha okunaklı çıkıyor ve gece bakıldığında göz yormuyor.
@@ -185,10 +230,13 @@ lib/
 ├── main.dart                     Uygulama girişi, tema kaydı
 ├── models/
 │   ├── deprem.dart               Veri modeli + iki farklı JSON çözümleyici
-│   └── kayitli_konum.dart        Kullanıcının takip ettiği yerler
+│   ├── kayitli_konum.dart        Kullanıcının takip ettiği yerler
+│   └── hazirlik_maddesi.dart     Hazırlık listesi ve durum modeli
 ├── services/
 │   ├── deprem_servisi.dart       AFAD ve Kandilli API istekleri
-│   └── tercih_servisi.dart       Filtreleri ve konumları telefonda saklama
+│   ├── tercih_servisi.dart       Filtreleri ve konumları telefonda saklama
+│   ├── bildirim_servisi.dart     Yerel bildirim sarmalayıcı
+│   └── hatirlatma_planlayici.dart  Sonraki hatırlatma tarihi hesabı
 ├── state/
 │   └── deprem_deposu.dart        Ortak durum: veri + filtreler (ChangeNotifier)
 ├── screens/
@@ -197,6 +245,8 @@ lib/
 │   ├── harita_sekmesi.dart       Tüm depremler haritada + seçim kartı
 │   ├── ayarlar_sekmesi.dart      Kaynak seçimi, tercihler, hakkında
 │   ├── acilis_ekrani.dart        Animasyonlu giriş ekranı
+│   ├── hazirlik_ekrani.dart      Kontrol listesi + hatırlatma ayarları
+│   ├── erken_uyari_ekrani.dart   Erken uyarı hakkında dürüst bilgilendirme
 │   ├── tanitim_ekrani.dart       İlk açılış tanıtımı (3 ekran)
 │   ├── yerlerim_ekrani.dart      Kayıtlı yerlerin listesi
 │   ├── konum_ekle_ekrani.dart    Şehirden veya haritadan yer seçme
@@ -294,7 +344,8 @@ Paketin güncel sürümü Flutter 3.38+ istiyor, projenin hedefinden çok yeni. 
 ## Bilinen Sınırlar
 
 - **Saat dilimi** — İki kurumun saatleri farklı dilimlerde olabilir (UTC / TSİ). Uygulama gelen değeri olduğu gibi gösteriyor; kaynaklar arası saat farkı doğrulanmadı.
-- **Bildirim yok** — Yeni deprem olduğunda uygulama kendiliğinden haber vermiyor.
+- **Deprem sonrası bildirim yok** — Hazırlık hatırlatmaları çalışıyor ama "az önce deprem oldu" bildirimi için sunucu tarafı gerekiyor (bir servisin API'yi sürekli izleyip itmeli bildirim göndermesi).
+- **Erken uyarı yok** — Sismik ağ gerektirir; gerekçesi yukarıda.
 - **Çevrimdışı çalışmıyor** — Veriler önbelleğe alınmıyor, internet yoksa liste boş kalır.
 - **Sadece koyu tema** — Açık tema seçeneği yok; uygulama koyu zemin üzerine tasarlandı.
 - **Şiddet tahmini yaklaşıktır** — Zemin sınıfı (Vs30), bina türü ve kat yüksekliği hesaba katılmıyor. Model M5.0 altındaki depremler için ekstrapolasyon yapıyor.
@@ -304,9 +355,10 @@ Paketin güncel sürümü Flutter 3.38+ istiyor, projenin hedefinden çok yeni. 
 
 ## Geliştirilebilecek Yönler
 
-- **Bildirim altyapısı** — kayıtlı yerlerde belirli bir şiddetin üzerinde tahmin edildiğinde bildirim (Firebase + sunucu gerektirir)
+- **Deprem sonrası bildirim** — kayıtlı yerlerde belirli bir şiddetin üzerinde tahmin edildiğinde itmeli bildirim (Firebase + sürekli çalışan sunucu gerektirir)
+- **Çevrimdışı önbellek** — son çekilen veriyi saklayıp internet yokken göstermek
+- **Artçı özeti** — "son 24 saatte 47 artçı, en büyüğü 3.8, azalma eğiliminde"
 - Zemin sınıfı verisiyle şiddet tahminini iyileştirme
-- Belirli büyüklüğün üzerindeki depremler için bildirim gönderme
 - Verileri yerel veritabanına kaydedip çevrimdışı erişim
 - Yakındaki depremleri gösterme (konum izni ile)
 - Harita işaretçilerini kümeleme (`flutter_map_marker_cluster`)
@@ -321,13 +373,14 @@ Paketin güncel sürümü Flutter 3.38+ istiyor, projenin hedefinden çok yeni. 
 flutter test
 ```
 
-49 birim testi çalışıyor:
+75 birim testi çalışıyor:
 
 | Dosya | Kapsam |
 |---|---|
 | `test/widget_test.dart` | JSON çözümleme: AFAD'ın metin sayıları, Kandilli'nin GeoJSON koordinat sırası, bozuk/eksik veri dayanıklılığı |
 | `test/siddet_hesabi_test.dart` | Haversine mesafesi, bilinen deprem senaryoları, monotonluk (mesafe ↑ → şiddet ↓), sınır durumları, geçerlilik bayrağı |
 | `test/gun_gruplama_test.dart` | Gün gruplama: gece yarısı sınırı, yıl geçişi, boş liste, başlık metinleri, kayıt kaybolmaması |
+| `test/hatirlatma_test.dart` | Hatırlatma tarihi hesabı, geçmişe planlama koruması, bildirim kimliği çakışması, durum saklama |
 
 Arayüz yerine bu iki katman test ediliyor çünkü projenin hataya en açık ve en kritik kısmı burası — üstelik internet gerektirmeden çalışıyorlar.
 

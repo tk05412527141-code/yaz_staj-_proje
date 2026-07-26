@@ -25,6 +25,15 @@ dependencies:
   # Kullanici tercihlerini telefonda saklamak icin
   shared_preferences: ^2.3.0
 
+  # Yerel bildirimler (hazirlik hatirlatmalari)
+  # SURUM SABIT: 20.x tum parametreleri adlandirilmisa cevirdi ve
+  # Flutter 3.32+, 21.x ise Flutter 3.38+ istiyor. 19.x API'si sabit
+  # ve Flutter 3.22+ ile calisiyor.
+  flutter_local_notifications: ^19.0.0
+
+  # Zamanlanmis bildirimler icin saat dilimi veritabani
+  timezone: ^0.10.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

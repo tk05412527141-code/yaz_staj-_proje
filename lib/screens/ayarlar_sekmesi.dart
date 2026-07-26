@@ -3,8 +3,10 @@ import 'package:flutter/services.dart';
 
 import '../services/deprem_servisi.dart';
 import '../services/tercih_servisi.dart';
+import '../models/hazirlik_maddesi.dart';
 import '../state/deprem_deposu.dart';
 import '../utils/tema.dart';
+import 'hazirlik_ekrani.dart';
 import 'yerlerim_ekrani.dart';
 
 /// Ayarlar sekmesi: veri kaynagi secimi, uygulama ve kaynak bilgileri.
@@ -77,6 +79,58 @@ class AyarlarSekmesi extends StatelessWidget {
                   'Eklediğin yerler için depremlerin tahmini olarak ne kadar '
                   'hissedileceği hesaplanır. Konum bilgisi yalnızca telefonunda '
                   'saklanır, hiçbir yere gönderilmez.',
+                  style: TextStyle(
+                    fontSize: 12,
+                    height: 1.4,
+                    color: Renkler.metinSolgun,
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 22),
+              _bolumBasligi('DEPREM ÖNCESİ'),
+              _kutu(
+                child: ListTile(
+                  leading: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF3FB950).withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(11),
+                    ),
+                    child: const Icon(Icons.health_and_safety_outlined,
+                        size: 20, color: Color(0xFF3FB950)),
+                  ),
+                  title: const Text(
+                    'Hazırlık ve hatırlatmalar',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: Text(
+                    depo.hazirlik.tamamlananSayisi == 0
+                        ? 'Kontrol listesi · henüz başlamadın'
+                        : '${depo.hazirlik.tamamlananSayisi}/'
+                            '${HazirlikListesi.tumu.length} madde tamam · '
+                            '${depo.acikHatirlatmaSayisi} hatırlatma açık',
+                    style: const TextStyle(
+                      fontSize: 12.5,
+                      color: Renkler.metinSolgun,
+                    ),
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => HazirlikEkrani(depo: depo),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 4),
+                child: Text(
+                  'Bu uygulama deprem tahmini yapamaz ve erken uyarı veremez. '
+                  'Deprem olmadan önce yapabileceği şey seni hazırlıklı '
+                  'tutmak — nedenini hazırlık ekranından okuyabilirsin.',
                   style: TextStyle(
                     fontSize: 12,
                     height: 1.4,

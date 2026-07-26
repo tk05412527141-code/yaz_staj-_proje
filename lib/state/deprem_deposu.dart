@@ -1,8 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
 import '../models/deprem.dart';
+import '../models/hazirlik_maddesi.dart';
 import '../models/kayitli_konum.dart';
 import '../services/deprem_servisi.dart';
+import '../services/hatirlatma_planlayici.dart';
 import '../services/tercih_servisi.dart';
 import '../utils/siddet_hesabi.dart';
 
@@ -60,6 +64,9 @@ class DepremDeposu extends ChangeNotifier {
   // --- Kullanicinin takip ettigi yerler ---
   List<KayitliKonum> konumlar = [];
 
+  // --- Deprem oncesi hazirlik durumu ---
+  HazirlikDurumu hazirlik = const HazirlikDurumu();
+
   bool _tercihlerYuklendi = false;
 
   // ------------------------------------------------------------------
@@ -70,8 +77,66 @@ class DepremDeposu extends ChangeNotifier {
   Future<void> baslat() async {
     await _tercihleriYukle();
     await _konumlariYukle();
+    await _hazirligiYukle();
+
+    // Hatirlatmalari her acilista yeniden planliyoruz. Cihaz bildirimleri
+    // uzun periyotlari kendi basina tekrarlayamadigi icin bir sonraki
+    // tarihi her seferinde yeniden kurmak gerekiyor.
+    unawaited(HatirlatmaPlanlayici.yenidenPlanla(hazirlik));
+
     await yenile();
   }
+
+  // ------------------------------------------------------------------
+  // Hazirlik ve hatirlatmalar
+  // ------------------------------------------------------------------
+
+  Future<void> _hazirligiYukle() async {
+    hazirlik = HazirlikDurumu.coz(await TercihServisi.hazirligiOku());
+  }
+
+  Future<void> _hazirligiKaydet() async {
+    await TercihServisi.hazirligiKaydet(hazirlik.kodla());
+    await HatirlatmaPlanlayici.yenidenPlanla(hazirlik);
+  }
+
+  /// Bir hazirlik maddesini tamamlandi/tamamlanmadi olarak isaretler.
+  Future<void> hazirlikMaddesiDegistir(String id, bool tamamlandi) async {
+    final yeni = Map<String, DateTime>.from(hazirlik.tamamlanmaTarihleri);
+    if (tamamlandi) {
+      yeni[id] = DateTime.now();
+    } else {
+      yeni.remove(id);
+    }
+    hazirlik = hazirlik.kopyala(tamamlanmaTarihleri: yeni);
+    notifyListeners();
+    await _hazirligiKaydet();
+  }
+
+  Future<void> hatirlatmaDegistir(String id, bool acik) async {
+    final yeni = Set<String>.from(hazirlik.acikHatirlatmalar);
+    if (acik) {
+      yeni.add(id);
+    } else {
+      yeni.remove(id);
+    }
+    hazirlik = hazirlik.kopyala(acikHatirlatmalar: yeni);
+    notifyListeners();
+    await _hazirligiKaydet();
+  }
+
+  Future<void> hatirlatmaSaatiDegistir(int saat) async {
+    hazirlik = hazirlik.kopyala(hatirlatmaSaati: saat);
+    notifyListeners();
+    await _hazirligiKaydet();
+  }
+
+  Future<void> hatirlatmalariYenidenPlanla() async {
+    await HatirlatmaPlanlayici.yenidenPlanla(hazirlik);
+  }
+
+  /// Acik hatirlatma sayisi - ayarlar ekraninda ozet gostermek icin.
+  int get acikHatirlatmaSayisi => hazirlik.acikHatirlatmalar.length;
 
   // ------------------------------------------------------------------
   // Kayitli konumlar
