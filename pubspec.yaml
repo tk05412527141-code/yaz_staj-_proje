@@ -42,6 +42,11 @@ dependencies:
   # SMS / WhatsApp / telefon uygulamalarini acmak icin
   url_launcher: ^6.3.0
 
+  # RSS (XML) ayristirma - haber beslemeleri icin.
+  # Genis aralik: kullandigimiz API (XmlDocument.parse, findAllElements,
+  # innerText) 6.3+ ve 7.x'te ayni.
+  xml: '>=6.3.0 <8.0.0'
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

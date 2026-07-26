@@ -4,10 +4,12 @@ import 'package:flutter/foundation.dart';
 
 import '../models/acil_kisi.dart';
 import '../models/deprem.dart';
+import '../models/haber.dart';
 import '../models/hazirlik_maddesi.dart';
 import '../models/kayitli_konum.dart';
 import '../services/bulten_uretici.dart';
 import '../services/deprem_servisi.dart';
+import '../services/haber_servisi.dart';
 import '../services/hatirlatma_planlayici.dart';
 import '../services/tercih_servisi.dart';
 import '../utils/siddet_hesabi.dart';
@@ -60,6 +62,10 @@ class DepremDeposu extends ChangeNotifier {
   List<Bulten> _bultenler = const [];
   bool bultenYukleniyor = true;
   String? bultenHatasi;
+
+  // --- Resmi haber kaynagindan deprem haberleri ---
+  List<Haber> haberler = const [];
+  bool haberYukleniyor = true;
 
   // --- Sunucuya giden filtreler (degisince yeniden veri cekilir) ---
   VeriKaynagi kaynak = VeriKaynagi.kandilli;
@@ -369,8 +375,27 @@ class DepremDeposu extends ChangeNotifier {
       notifyListeners();
     }
 
-    // Bultenler ana listeyi bekletmesin
+    // Bultenler ve haberler ana listeyi bekletmesin
     unawaited(bultenleriYenile());
+    unawaited(haberleriYenile());
+  }
+
+  /// Resmi haber kaynagindan deprem haberlerini ceker.
+  ///
+  /// Haber bulunamamasi HATA DEGILDIR: deprem haberi ancak kayda deger
+  /// bir deprem oldugunda cikar. Bu yuzden ayri bir hata durumu
+  /// tutmuyoruz; liste bos kalir ve arayuz bunu normal karsilar.
+  Future<void> haberleriYenile() async {
+    haberYukleniyor = true;
+    notifyListeners();
+    try {
+      haberler = await HaberServisi.getir();
+    } catch (_) {
+      haberler = const [];
+    } finally {
+      haberYukleniyor = false;
+      notifyListeners();
+    }
   }
 
   /// Duyuru bultenlerini AYRI bir sorguyla yeniler.

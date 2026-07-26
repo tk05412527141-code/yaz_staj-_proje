@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'package:url_launcher/url_launcher.dart';
+
+import '../models/haber.dart';
 import '../services/acil_durum_servisi.dart';
 import '../services/bulten_uretici.dart';
 import '../state/deprem_deposu.dart';
@@ -63,9 +66,8 @@ class DuyurularSekmesi extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'Son ${DepremDeposu.bultenGunSayisi} günde '
-            '${BultenUretici.esikBuyukluk.toStringAsFixed(1)} ve üzeri '
-            'depremler · AFAD resmî verisi',
+            'TRT Haber\'den deprem haberleri ve AFAD resmî verisinden '
+            'üretilen bültenler',
             style: const TextStyle(
               fontSize: 12.5,
               height: 1.4,
@@ -111,15 +113,19 @@ class DuyurularSekmesi extends StatelessWidget {
     return RefreshIndicator(
       onRefresh: () async {
         HapticFeedback.lightImpact();
-        await depo.bultenleriYenile();
+        await Future.wait([
+          depo.bultenleriYenile(),
+          depo.haberleriYenile(),
+        ]);
       },
       color: Renkler.vurgu,
       backgroundColor: Renkler.yuzey,
       child: ListView.builder(
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
-        itemCount: bultenler.length + 2,
+        itemCount: bultenler.length + 3,
         itemBuilder: (context, i) {
-          if (i == 0) {
+          if (i == 0) return _haberBolumu(context);
+          if (i == 1) {
             // Esigi gecen deprem yoksa bunu acikca soyle; kullanici
             // siradan bir sarsintiyi "onemli duyuru" sanmamali
             final yedek = bultenler.first.esigiGecti == false;
@@ -158,12 +164,236 @@ class DuyurularSekmesi extends StatelessWidget {
               ),
             );
           }
-          if (i == bultenler.length + 1) return _kaynakNotu();
+          if (i == bultenler.length + 2) return _kaynakNotu();
           return Padding(
             padding: const EdgeInsets.only(bottom: 12),
-            child: _bultenKarti(context, bultenler[i - 1]),
+            child: _bultenKarti(context, bultenler[i - 2]),
           );
         },
+      ),
+    );
+  }
+
+  // ------------------------------------------------------------------
+  // Haberler
+  // ------------------------------------------------------------------
+
+  /// TRT Haber'den suzulmus deprem haberleri.
+  ///
+  /// Haber bulunmamasi NORMAL: deprem haberi ancak kayda deger bir
+  /// deprem oldugunda cikiyor. Bu yuzden bos oldugunda hata degil,
+  /// sadece bolum hic gosterilmiyor - altta bultenler zaten var.
+  Widget _haberBolumu(BuildContext context) {
+    if (depo.haberYukleniyor) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 18),
+        child: Center(
+          child: SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(strokeWidth: 2.2),
+          ),
+        ),
+      );
+    }
+
+    final haberler = depo.haberler;
+    if (haberler.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _bolumBasligi('HABERLER', 'TRT Haber'),
+        for (final h in haberler.take(6)) ...[
+          _haberKarti(context, h),
+          const SizedBox(height: 12),
+        ],
+        const SizedBox(height: 8),
+        _bolumBasligi(
+          'RESMÎ VERİ BÜLTENLERİ',
+          'AFAD · son ${DepremDeposu.bultenGunSayisi} gün',
+        ),
+      ],
+    );
+  }
+
+  Widget _bolumBasligi(String baslik, String altYazi) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, bottom: 10, top: 2),
+      child: Row(
+        children: [
+          Text(
+            baslik,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1.0,
+              color: Renkler.metinSolgun,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(child: Container(height: 1, color: Renkler.kenarlik)),
+          const SizedBox(width: 8),
+          Text(
+            altYazi,
+            style: const TextStyle(
+              fontSize: 10.5,
+              color: Renkler.metinSolgun,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _haberKarti(BuildContext context, Haber h) {
+    final tahmin = HaberFiltresi.tahminIddiasiMi(h);
+
+    return Material(
+      color: Renkler.yuzey,
+      borderRadius: BorderRadius.circular(16),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => _haberiAc(context, h),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Renkler.kenarlik),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (h.gorselUrl != null)
+                AspectRatio(
+                  aspectRatio: 16 / 9,
+                  child: Image.network(
+                    h.gorselUrl!,
+                    fit: BoxFit.cover,
+                    // Gorsel yuklenemezse kart yine calissin
+                    errorBuilder: (_, __, ___) => Container(
+                      color: Renkler.yuzeyUst,
+                      alignment: Alignment.center,
+                      child: const Icon(Icons.image_not_supported_outlined,
+                          size: 28, color: Renkler.metinSolgun),
+                    ),
+                    loadingBuilder: (context, cocuk, ilerleme) {
+                      if (ilerleme == null) return cocuk;
+                      return Container(
+                        color: Renkler.yuzeyUst,
+                        alignment: Alignment.center,
+                        child: const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+
+              Padding(
+                padding: const EdgeInsets.all(14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (tahmin) ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 9, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE3B341)
+                              .withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.warning_amber_rounded,
+                                size: 14, color: Color(0xFFE3B341)),
+                            SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                'Tahmin iddiası içerebilir — deprem '
+                                'önceden bilinemez',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  height: 1.35,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFFE3B341),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                    ],
+                    Text(
+                      h.baslik,
+                      style: const TextStyle(
+                        fontSize: 15.5,
+                        fontWeight: FontWeight.w700,
+                        color: Renkler.metin,
+                        height: 1.3,
+                      ),
+                    ),
+                    if (h.ozet.isNotEmpty) ...[
+                      const SizedBox(height: 7),
+                      Text(
+                        h.ozet,
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          height: 1.45,
+                          color: Renkler.metinSolgun,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        const Icon(Icons.verified_outlined,
+                            size: 14, color: Renkler.metinSolgun),
+                        const SizedBox(width: 5),
+                        Text(
+                          '${h.kaynak} · ${h.gecenSure}',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Renkler.metinSolgun,
+                          ),
+                        ),
+                        const Spacer(),
+                        const Icon(Icons.open_in_new,
+                            size: 14, color: Renkler.metinSolgun),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _haberiAc(BuildContext context, Haber h) async {
+    HapticFeedback.selectionClick();
+    try {
+      final adres = Uri.parse(h.baglanti);
+      if (await canLaunchUrl(adres)) {
+        await launchUrl(adres, mode: LaunchMode.externalApplication);
+        return;
+      }
+    } catch (_) {}
+
+    // Acilamadiysa baglantiyi panoya kopyala
+    await AcilDurumServisi.panoyaKopyala(h.baglanti);
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Haber açılamadı, bağlantı panoya kopyalandı'),
+        duration: Duration(seconds: 3),
       ),
     );
   }
@@ -444,7 +674,12 @@ class DuyurularSekmesi extends StatelessWidget {
             'girmez. Gerçek artçı sayısı gösterilenden fazladır.\n\n'
             'Hissedilirlik tahmini de bu veriden hesaplanır ve '
             'yaklaşıktır.\n\n'
-            'Bunlar kurumların basın açıklaması değildir. Resmî '
+            'Haberler TRT Haber RSS beslemesinden alınır; başlık, kısa '
+            'özet ve görsel gösterilir, karta dokununca haber kaynağın '
+            'sitesinde açılır. Deprem haberi ancak kayda değer bir '
+            'deprem olduğunda çıkar; sakin dönemlerde haber bölümü '
+            'görünmez.\n\n'
+            'Bültenler kurumların basın açıklaması değildir. Resmî '
             'açıklamalar için AFAD ve Kandilli Rasathanesi\'nin kendi '
             'kaynaklarını takip edin.',
             style: TextStyle(

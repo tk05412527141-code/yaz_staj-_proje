@@ -9,7 +9,7 @@ Liste görünümü, harita üzerinde işaretçiler, büyüklük/tarih/konum filt
 ## Özellikler
 
 - **Acil durum butonu** — basılı tut, konumun yakınlarına gidecek mesaja hazır eklenir. SMS ve WhatsApp desteği, 112 kısayolu, "İyiyim" mesajı.
-- **Duyurular** — 4.0 ve üzeri depremler için resmî verilerden üretilen bültenler: parametreler, artçı sayımı ve eğilimi, yerlerindeki tahmini etki
+- **Duyurular** — TRT Haber'den süzülmüş deprem haberleri (görselleriyle) ve AFAD resmî verisinden üretilen bültenler
 - **Hazırlık hatırlatmaları** — deprem çantası, tatbikat, ev güvenliği için periyodik bildirimler. Deprem olmadan önce işine yarayan bölüm; sunucu gerektirmez, tamamen cihazda çalışır.
 - **Özel uygulama ikonu ve animasyonlu açılış** — logo belirirken çevresinden sismik halkalar yayılır; yerel açılış ekranı da aynı koyu zeminde, beyaz parlama yok
 - **Yerlerim ve hissedilirlik tahmini** — ev, iş, ailenin evi gibi yerleri kaydedersin; her deprem için o noktalarda ne kadar hissedileceği tahmin edilir. "4.1" yerine **"Evinizden 340 km — hissetmeyeceksiniz"**.
@@ -201,6 +201,36 @@ Bu yüzden duyurular **zaten kullandığımız resmî veriden** üretiliyor:
 - Kullanıcının yerlerindeki tahmini etki
 
 Artçı sayımı ve eğilim **yaklaşık değerlerdir** — arayüzde "yaklaşık" diye belirtiliyor ve bunların kurumların basın açıklaması olmadığı açıkça yazıyor.
+
+---
+
+## Duyurular Sekmesi
+
+İki katmandan oluşuyor:
+
+**1. Haberler (TRT Haber)** — RSS beslemesinden süzülmüş deprem haberleri, görselleriyle. Karta dokununca haber TRT'nin sitesinde açılıyor. Başlık, kısa özet, kaynak adı ve görsel gösteriliyor; tam metin kopyalanmıyor.
+
+**2. Resmî veri bültenleri (AFAD)** — Son 30 günde 3.0+ depremler; parametreler, artçı sayımı ve kullanıcının yerlerindeki tahmini etki.
+
+### Neden iki katman?
+
+Deprem haberi ancak kayda değer bir deprem olduğunda çıkıyor. Test sırasında TRT'nin manşet beslemesindeki 50 haberin **hiçbiri** deprem haberi değildi — çünkü o hafta en büyük deprem 4.1'di. Haber tek başına kullanılsaydı sekme çoğu zaman boş kalırdı. Bültenler kalıcı omurga, haberler ise olay olduğunda gelen zenginleştirme.
+
+### Tahmin iddiası filtresi
+
+Türkiye'de "deprem" etiketli haberlerin bir kısmı tahmin iddiası taşıyor: *"kâhin tarih verdi"*, *"ne zaman olacak"*. Uygulamanın başka bir ekranında tahminin bilimsel olarak mümkün olmadığını anlatıyoruz; bu içeriği filtresiz göstermek çelişkili olurdu.
+
+Bu haberler **gizlenmiyor, işaretleniyor**: kartın üstünde "Tahmin iddiası içerebilir — deprem önceden bilinemez" uyarısı çıkıyor. Sansür değil, bağlam.
+
+### Türkiye filtresi
+
+Önce TRT kategorisine bakılıyor ("Türkiye"/"Gündem" ise doğrudan kabul). Sonra yabancı ülke adı aranıyor; varsa ve Türkiye işareti yoksa eleniyor. Böylece *"Japonya'da deprem"* elenirken *"Yunanistan'da deprem, Türkiye'de de hissedildi"* korunuyor.
+
+Türkçe karakter farkı sorun çıkarmıyor: "artçı" ve "artci" ikisi de yakalanıyor.
+
+### Telif
+
+RSS beslemeleri sendikasyon için yayınlanır. Başlık + kısa özet + kaynak adı + özgün bağlantı gösteriliyor, tam metin kopyalanmıyor. Görseller beslemenin kendi sağladığı adreslerden yükleniyor.
 
 ---
 
@@ -414,7 +444,9 @@ Paketin güncel sürümü Flutter 3.38+ istiyor, projenin hedefinden çok yeni. 
 - **Deprem sonrası bildirim yok** — Hazırlık hatırlatmaları çalışıyor ama "az önce deprem oldu" bildirimi için sunucu tarafı gerekiyor (bir servisin API'yi sürekli izleyip itmeli bildirim göndermesi).
 - **Erken uyarı yok** — Sismik ağ gerektirir; gerekçesi yukarıda.
 - **Acil mesaj otomatik gönderilmez** — Platform kısıtı; son dokunuş kullanıcıda.
-- **Gerçek haber akışı yok** — Duyurular resmî veriden üretilir, basın açıklaması değildir.
+- **Haber kaynağı tek** — Yalnızca TRT Haber. Anadolu Ajansı'nın RSS'i sıkıştırılmış geliyor ve çözülemedi.
+- **Sakin dönemde haber bölümü boş** — Deprem haberi ancak kayda değer bir deprem olduğunda çıkar; bu yüzden bültenler kalıcı omurga olarak duruyor.
+- **Tahmin filtresi kelime tabanlı** — Yeni kalıpları kaçırabilir; iddia içeren haber gizlenmez, işaretlenir.
 - **Artçı sayımı yaklaşıktır** — 100 km yarıçap ve "daha küçük büyüklük" kuralına dayanır; sismolojik bir artçı tanımı değildir.
 - **Çevrimdışı çalışmıyor** — Veriler önbelleğe alınmıyor, internet yoksa liste boş kalır.
 - **Sadece koyu tema** — Açık tema seçeneği yok; uygulama koyu zemin üzerine tasarlandı.
@@ -443,7 +475,7 @@ Paketin güncel sürümü Flutter 3.38+ istiyor, projenin hedefinden çok yeni. 
 flutter test
 ```
 
-106 birim testi çalışıyor:
+126 birim testi çalışıyor:
 
 | Dosya | Kapsam |
 |---|---|
@@ -452,6 +484,7 @@ flutter test
 | `test/gun_gruplama_test.dart` | Gün gruplama: gece yarısı sınırı, yıl geçişi, boş liste, başlık metinleri, kayıt kaybolmaması |
 | `test/hatirlatma_test.dart` | Hatırlatma tarihi hesabı, geçmişe planlama koruması, bildirim kimliği çakışması, durum saklama |
 | `test/acil_durum_test.dart` | Telefon temizleme/doğrulama, WhatsApp biçimi, mesaj oluşturma, konumsuz durum, kişi saklama |
+| `test/haber_test.dart` | Haber filtreleri: deprem konusu, Türkiye ilgisi, tahmin iddiası tespiti, süzme ve sıralama |
 
 Arayüz yerine bu iki katman test ediliyor çünkü projenin hataya en açık ve en kritik kısmı burası — üstelik internet gerektirmeden çalışıyorlar.
 
