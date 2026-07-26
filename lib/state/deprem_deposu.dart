@@ -58,6 +58,61 @@ class DepremDeposu extends ChangeNotifier {
   /// Listeyi besleyen ham kayitlar.
   List<Deprem> get _ham => _yanit?.depremler ?? const [];
 
+  /// Otomatik modda gercekte hangi kaynak kullanildi?
+  VeriKaynagi? get kullanilanKaynak => _yanit?.kaynak;
+
+  /// En yeni kaydin yasi. Kaynagin ne kadar guncel oldugunu gosterir.
+  Duration? get veriTazeligi => _yanit?.tazelik;
+
+  /// Kaynak belirgin sekilde gecikmeli mi? (en yeni kayit 3 saatten eski)
+  bool get veriGecikmeli => _yanit?.gecikmeli ?? false;
+
+  String get tazelikMetni {
+    final t = veriTazeligi;
+    if (t == null) return '—';
+    if (t.inMinutes < 1) return 'az önce';
+    if (t.inMinutes < 60) return '${t.inMinutes} dk önce';
+    if (t.inHours < 24) return '${t.inHours} saat önce';
+    return '${t.inDays} gün önce';
+  }
+
+  // ------------------------------------------------------------------
+  // Otomatik periyodik yenileme
+  // ------------------------------------------------------------------
+
+  Timer? _periyodikZamanlayici;
+
+  /// Uygulama on plandayken listeyi ne siklikta yenileyelim.
+  ///
+  /// Kandilli yaklasik 5 dakikalik gecikmeyle yayin yapiyor; 60 saniye
+  /// bunun altinda kaldigi icin yeni kayit cikar cikmaz yakalaniyor.
+  /// Daha sik yenilemek kaynagin sunucusuna gereksiz yuk olurdu.
+  static const periyodikAralik = Duration(seconds: 60);
+
+  /// Periyodik yenilemeyi baslatir (uygulama on plana geldiginde).
+  void periyodikBaslat() {
+    _periyodikZamanlayici?.cancel();
+    _periyodikZamanlayici = Timer.periodic(periyodikAralik, (_) {
+      // Zaten yukleniyorsa ustune istek atma
+      if (!yukleniyor) yenile();
+    });
+  }
+
+  /// Periyodik yenilemeyi durdurur (arka plana gecince).
+  ///
+  /// Arka planda istek atmak hem pil hem veri israfi; ustelik
+  /// kullanici gormuyor.
+  void periyodikDurdur() {
+    _periyodikZamanlayici?.cancel();
+    _periyodikZamanlayici = null;
+  }
+
+  @override
+  void dispose() {
+    _periyodikZamanlayici?.cancel();
+    super.dispose();
+  }
+
   // --- Duyuru bultenleri (AYRI sorgu) ---
   List<Bulten> _bultenler = const [];
   bool bultenYukleniyor = true;
@@ -109,7 +164,7 @@ class DepremDeposu extends ChangeNotifier {
   }
 
   // --- Sunucuya giden filtreler (degisince yeniden veri cekilir) ---
-  VeriKaynagi kaynak = VeriKaynagi.kandilli;
+  VeriKaynagi kaynak = VeriKaynagi.otomatik;
   int gunSayisi = 7;
   double minBuyukluk = 0;
 
@@ -529,7 +584,7 @@ class DepremDeposu extends ChangeNotifier {
   }
 
   Future<void> filtreleriSifirla() async {
-    kaynak = VeriKaynagi.kandilli;
+    kaynak = VeriKaynagi.otomatik;
     gunSayisi = 7;
     minBuyukluk = 0;
     hizliFiltre = HizliFiltre.tumu;

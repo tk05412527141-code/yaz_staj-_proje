@@ -162,11 +162,19 @@ class AyarlarSekmesi extends StatelessWidget {
                           ),
                         ),
                         subtitle: Text(
-                          k == VeriKaynagi.afad
-                              ? 'Resmî kurum verisi. Zaman zaman gecikmeli '
-                                  'yayınlanabilir.'
-                              : 'Boğaziçi Üniv. Kandilli Rasathanesi verisi. '
-                                  'Genelde daha günceldir.',
+                          switch (k) {
+                            VeriKaynagi.otomatik =>
+                              'İki kaynağı aynı anda dener, verisi daha '
+                                  'taze olanı kullanır. Önerilen.',
+                            VeriKaynagi.afad =>
+                              'Resmî kurum verisi. Geçmişe dönük arama '
+                                  'yapabilir ama zaman zaman saatlerce '
+                                  'gecikmeli yayınlanır.',
+                            VeriKaynagi.kandilli =>
+                              'Boğaziçi Üniv. Kandilli Rasathanesi verisi. '
+                                  'Genelde çok daha güncel ama yalnızca '
+                                  'son 24 saati verir.',
+                          },
                           style: const TextStyle(
                             fontSize: 12.5,
                             height: 1.35,

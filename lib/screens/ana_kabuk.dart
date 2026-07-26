@@ -55,7 +55,15 @@ class _AnaKabukState extends State<AnaKabuk>
     // Kullanici uygulamayi arka plandan geri getirdiginde veri bayat
     // olabilir. Bayatsa tazeliyoruz; taze ise istek atilmiyor.
     if (durum == AppLifecycleState.resumed) {
+      // On plana donunce: bayat duyurulari tazele ve periyodik
+      // yenilemeyi yeniden baslat
       _depo.duyurulariTazele();
+      _depo.yenile();
+      _depo.periyodikBaslat();
+    } else if (durum == AppLifecycleState.paused ||
+        durum == AppLifecycleState.detached) {
+      // Arka planda istek atmak pil ve veri israfi
+      _depo.periyodikDurdur();
     }
   }
 
@@ -68,6 +76,9 @@ class _AnaKabukState extends State<AnaKabuk>
     setState(() => _tanitimGerekli = !goruldu);
 
     await _depo.baslat();
+    if (!mounted) return;
+    // Ilk veri geldikten sonra periyodik yenilemeyi baslat
+    _depo.periyodikBaslat();
   }
 
   Future<void> _tanitimiBitir() async {

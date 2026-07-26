@@ -99,7 +99,11 @@ class _ListeSekmesiState extends State<ListeSekmesi> {
                         const SizedBox(width: 6),
                         Flexible(
                           child: Text(
-                            '${depo.kaynak.ad} · ${depo.sonGuncellemeMetni}',
+                            // Otomatik modda hangi kaynagin secildigini
+                            // gostermek onemli: kullanici verinin nereden
+                            // geldigini bilmeli
+                            '${depo.kullanilanKaynak?.ad ?? depo.kaynak.ad}'
+                            ' · son kayıt ${depo.tazelikMetni}',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
@@ -344,8 +348,12 @@ class _ListeSekmesiState extends State<ListeSekmesi> {
         aciklama: depo.hata!,
         eylemYazisi: 'Tekrar dene',
         onEylem: depo.yenile,
-        ikinciEylemYazisi: '${_digerKaynak(depo.kaynak).ad} kaynağını dene',
-        onIkinciEylem: () => depo.kaynakDegistir(_digerKaynak(depo.kaynak)),
+        ikinciEylemYazisi: depo.kaynak == VeriKaynagi.otomatik
+            ? null
+            : 'Otomatik kaynağa geç',
+        onIkinciEylem: depo.kaynak == VeriKaynagi.otomatik
+            ? null
+            : () => depo.kaynakDegistir(VeriKaynagi.otomatik),
       );
     }
 
@@ -392,6 +400,8 @@ class _ListeSekmesiState extends State<ListeSekmesi> {
       // Secili kaynak zaman araligini karsilayamiyorsa uyar.
       // Sessizce calismayan bir filtre, bozuk bir filtreden daha
       // yanilticidir: kullanici 30 gun sanip 24 saat gorur.
+      if (depo.veriGecikmeli)
+        SliverToBoxAdapter(child: _gecikmeUyarisi(depo)),
       if (depo.kapsamUyarisiVar)
         SliverToBoxAdapter(child: _kapsamUyarisi(depo)),
       SliverToBoxAdapter(
@@ -447,6 +457,45 @@ class _ListeSekmesiState extends State<ListeSekmesi> {
     );
   }
 
+  /// Kaynak belirgin sekilde gecikmeliyse uyar.
+  ///
+  /// Olcum sirasinda AFAD'in 11.5 saat geriden geldigi goruldu.
+  /// Kullanicinin "son deprem 12 saat once" diye dusunup yanilmamasi
+  /// icin bunu acikca soylemek gerekiyor.
+  Widget _gecikmeUyarisi(DepremDeposu depo) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF85149).withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: const Color(0xFFF85149).withValues(alpha: 0.35),
+          ),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.schedule, size: 17, color: Color(0xFFF85149)),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                '${depo.kullanilanKaynak?.ad ?? "Kaynak"} gecikmeli: '
+                'en yeni kayıt ${depo.tazelikMetni}. '
+                'Bu süre içinde olan depremler henüz görünmüyor olabilir.',
+                style: const TextStyle(
+                  fontSize: 12.5,
+                  height: 1.4,
+                  color: Renkler.metin,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _kapsamUyarisi(DepremDeposu depo) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
@@ -474,7 +523,7 @@ class _ListeSekmesiState extends State<ListeSekmesi> {
                 ),
               ),
             ),
-            if (depo.kaynak != VeriKaynagi.afad) ...[
+            if (depo.kaynak == VeriKaynagi.kandilli) ...[
               const SizedBox(width: 6),
               TextButton(
                 onPressed: () {
@@ -541,12 +590,6 @@ class _ListeSekmesiState extends State<ListeSekmesi> {
     );
   }
 
-  /// Su an secili olmayan diger veri kaynagini dondurur.
-  VeriKaynagi _digerKaynak(VeriKaynagi mevcut) {
-    return mevcut == VeriKaynagi.afad
-        ? VeriKaynagi.kandilli
-        : VeriKaynagi.afad;
-  }
 }
 
 /// Kaydirirken ekranin ustune yapisan gun basligi.

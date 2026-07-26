@@ -7,6 +7,22 @@ import '../models/deprem.dart';
 
 /// Hangi kurumdan veri cekilecegini belirtir.
 enum VeriKaynagi {
+  /// Iki kaynagi PARALEL dener, verisi daha TAZE olani kullanir.
+  ///
+  /// NEDEN VARSAYILAN?
+  ///   Olcum (26 Tem 2026): Kandilli en yeni kaydi ~5 dakikalikti,
+  ///   AFAD ~11.5 SAAT geriden geliyordu. Ama bu oran sabit degil;
+  ///   AFAD bazen daha hizli olabiliyor.
+  ///
+  ///   Kullaniciyi "hangi kaynak su an daha hizli?" sorusuyla bas basa
+  ///   birakmak yerine ikisini de cekip taze olani secmek daha dogru.
+  ///   Iki istek paralel gittigi icin ek gecikme yok.
+  ///
+  ///   Birlestirme YAPMIYORUZ: ayni deprem iki kaynakta farkli
+  ///   parametrelerle geliyor, eslestirme hatasi yanlis kayit
+  ///   uretebilirdi. Tek kaynak secip butun olarak kullaniyoruz.
+  otomatik('Otomatik', null),
+
   /// Resmi kurum. Tarih araligi parametresi kabul ediyor, gecmise
   /// gidilebiliyor. Buna karsilik zaman zaman gecikmeli yayinliyor.
   afad('AFAD', null),
@@ -86,6 +102,26 @@ class DepremYanit {
     );
   }
 
+  /// En yeni kaydin uzerinden gecen sure.
+  ///
+  /// Kaynagin ne kadar guncel oldugunu gosterir; kaynak secimi ve
+  /// arayuzdeki "gecikmeli" uyarisi buna dayaniyor.
+  Duration? get tazelik {
+    final enYeni = depremler.isEmpty ? null : depremler.first.tarih;
+    if (enYeni == null) return null;
+    final fark = DateTime.now().difference(enYeni);
+    return fark.isNegative ? Duration.zero : fark;
+  }
+
+  /// Kaynak belirgin sekilde gecikmeli mi?
+  ///
+  /// Turkiye'de gunde 100-300 deprem kaydediliyor; en yeni kayit
+  /// 3 saatten eskiyse kaynak yayin yapmiyor demektir.
+  bool get gecikmeli {
+    final t = tazelik;
+    return t != null && t > const Duration(hours: 3);
+  }
+
   /// Verinin gercekte kac gunu kapsadigi
   int get kapsananGun {
     final enEski = enEskiKayit;
@@ -122,6 +158,15 @@ class DepremServisi {
     final simdi = DateTime.now();
     final istenenBaslangic = simdi.subtract(Duration(days: gunSayisi));
 
+    // Otomatik mod: iki kaynagi paralel cek, taze olani sec
+    if (kaynak == VeriKaynagi.otomatik) {
+      return _enTazeyiSec(
+        gunSayisi: gunSayisi,
+        minBuyukluk: minBuyukluk,
+        kayitSiniri: kayitSiniri,
+      );
+    }
+
     final List<Deprem> depremler;
     if (kaynak == VeriKaynagi.afad) {
       depremler = await _afaddanGetir(
@@ -147,6 +192,51 @@ class DepremServisi {
       kayitSiniri: kayitSiniri,
       kaynak: kaynak,
     );
+  }
+
+  /// Iki kaynagi paralel cekip verisi daha taze olani dondurur.
+  ///
+  /// Biri hata verirse digeri kullanilir. Ikisi de hata verirse hata
+  /// yukari tasinir.
+  static Future<DepremYanit> _enTazeyiSec({
+    required int gunSayisi,
+    required double minBuyukluk,
+    required int kayitSiniri,
+  }) async {
+    Future<DepremYanit?> dene(VeriKaynagi k) async {
+      try {
+        return await getir(
+          kaynak: k,
+          gunSayisi: gunSayisi,
+          minBuyukluk: minBuyukluk,
+          kayitSiniri: kayitSiniri,
+        );
+      } catch (_) {
+        return null;
+      }
+    }
+
+    final sonuclar = await Future.wait([
+      dene(VeriKaynagi.kandilli),
+      dene(VeriKaynagi.afad),
+    ]);
+
+    final gecerli = sonuclar.whereType<DepremYanit>().toList();
+    if (gecerli.isEmpty) {
+      throw Exception(
+        'Hiçbir veri kaynağına ulaşılamadı. İnternet bağlantınızı '
+        'kontrol edin.',
+      );
+    }
+    if (gecerli.length == 1) return gecerli.first;
+
+    // En yeni kaydi daha guncel olani sec
+    gecerli.sort((a, b) {
+      final ta = a.tazelik ?? const Duration(days: 999);
+      final tb = b.tazelik ?? const Duration(days: 999);
+      return ta.compareTo(tb);
+    });
+    return gecerli.first;
   }
 
   /// Duyuru bultenleri icin hedefli sorgu.
