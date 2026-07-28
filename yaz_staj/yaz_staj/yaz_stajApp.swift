@@ -11,7 +11,7 @@ import SwiftUI
 struct yaz_stajApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            RContentView()
         }
     }
 }

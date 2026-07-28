@@ -21,6 +21,13 @@ echo "  $(date '+%d.%m.%Y %H:%M')"
 echo "=================================================="
 echo
 
+for dir in "$HOME/development/flutter/bin" "$HOME/flutter/bin" "/opt/homebrew/bin" "/usr/local/bin"; do
+    if [ -x "$dir/flutter" ]; then
+        export PATH="$PATH:$dir"
+        break
+    fi
+done
+
 if ! command -v flutter >/dev/null 2>&1; then
     echo "HATA: flutter bulunamadi."
     echo "Kurmak icin: brew install --cask flutter"

@@ -1,0 +1,75 @@
+Flutter crash report.
+Please report a bug at https://github.com/flutter/flutter/issues.
+
+## command
+
+flutter analyze
+
+## exception
+
+_Exception: Exception: analysis server exited with code 255 and output:
+[stderr] #7      LspByteStreamServerChannel.listen.<anonymous closure> (package:analysis_server/src/lsp/channel/lsp_byte_stream_channel.dart:67)
+[stderr] #8      _rootRunUnary (dart:async/zone_root.dart:48)
+[stderr] #9      _CustomZone.runUnary (dart:async/zone.dart:733)
+[stderr] #10     _CustomZone.runUnaryGuarded (dart:async/zone.dart:633)
+[stderr] #11     _BufferingStreamSubscription._sendData (dart:async/stream_impl.dart:381)
+[stderr] #12     _DelayedData.perform (dart:async/stream_impl.dart:573)
+[stderr] #13     _PendingEvents.handleNext (dart:async/stream_impl.dart:678)
+[stderr] #14     _PendingEvents.schedule.<anonymous closure> (dart:async/stream_impl.dart:649)
+[stderr] #15     _rootRun (dart:async/zone_root.dart:27)
+[stderr] #16     _CustomZone.run (dart:async/zone.dart:726)
+[stderr] #17     _CustomZone.runGuarded (dart:async/zone.dart:625)
+[stderr] #18     _CustomZone.bindCallbackGuarded.<anonymous closure> (dart:async/zone.dart:666)
+[stderr] #19     _rootRun (dart:async/zone_root.dart:35)
+[stderr] #20     _CustomZone.run (dart:async/zone.dart:726)
+[stderr] #21     _CustomZone.runGuarded (dart:async/zone.dart:625)
+[stderr] #22     _CustomZone.bindCallbackGuarded.<anonymous closure> (dart:async/zone.dart:666)
+[stderr] #23     _microtaskLoop (dart:async/schedule_microtask.dart:40)
+[stderr] #24     _startMicrotaskLoop (dart:async/schedule_microtask.dart:49)
+[stderr] #25     _runPendingImmediateCallback (dart:isolate-patch/isolate_patch.dart:127)
+[stderr] #26     _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:193)
+
+```
+```
+
+## flutter doctor
+
+```
+[✓] Flutter (Channel stable, 3.44.0, on macOS 26.5.2 25F84 darwin-arm64, locale en-TR) [135ms]
+    • Flutter version 3.44.0 on channel stable at /Users/tunakilic/development/flutter
+    • Upstream repository https://github.com/flutter/flutter.git
+    • Framework revision 559ffa3f75 (2 months ago), 2026-05-15 14:13:13 -0700
+    • Engine revision 4c525dac5e
+    • Dart version 3.12.0
+    • DevTools version 2.57.0
+    • Feature flags: enable-web, enable-linux-desktop, enable-macos-desktop, enable-windows-desktop, enable-android, enable-ios, cli-animations, enable-native-assets, enable-swift-package-manager, omit-legacy-version-file, enable-lldb-debugging, enable-uiscene-migration
+
+[✓] Android toolchain - develop for Android devices (Android SDK version 35.0.0) [1,446ms]
+    • Android SDK at /Users/tunakilic/development/android-sdk
+    • Emulator version 36.5.11.0 (build_id 15261927) (CL:N/A)
+    • Platform android-36, build-tools 35.0.0
+    • Java binary at: /Users/tunakilic/development/jdk-17.0.2.jdk/Contents/Home/bin/java
+      This JDK is specified in your Flutter configuration.
+      To change the current JDK, run: `flutter config --jdk-dir="path/to/jdk"`.
+    • Java version OpenJDK Runtime Environment (build 17.0.2+8-86)
+    • All Android licenses accepted.
+
+[✓] Xcode - develop for iOS and macOS (Xcode 26.6) [641ms]
+    • Xcode at /Applications/Xcode.app/Contents/Developer
+    • Build 17F113
+    • CocoaPods version 1.16.2
+
+[✓] Chrome - develop for the web [3ms]
+    • Chrome at /Applications/Google Chrome.app/Contents/MacOS/Google Chrome
+
+[✓] Connected device (4 available) [5.6s]
+    • iPhone (wireless) (mobile) • 00008110-00160D512123A01E            • ios            • iOS 26.5.2 23F84
+    • iPhone 17 (mobile)         • 29266A58-0236-471B-B93F-5155A24C751E • ios            • com.apple.CoreSimulator.SimRuntime.iOS-26-5 (simulator)
+    • macOS (desktop)            • macos                                • darwin-arm64   • macOS 26.5.2 25F84 darwin-arm64
+    • Chrome (web)               • chrome                               • web-javascript • Google Chrome 150.0.7871.187
+
+[✓] Network resources [324ms]
+    • All expected network resources are available.
+
+• No issues found!
+```

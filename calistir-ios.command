@@ -24,6 +24,13 @@ hata_ile_cik() {
 # 1) Flutter kurulu mu?
 # --------------------------------------------------------------
 echo "[1/6] Flutter kontrol ediliyor..."
+for dir in "$HOME/development/flutter/bin" "$HOME/flutter/bin" "/opt/homebrew/bin" "/usr/local/bin"; do
+    if [ -x "$dir/flutter" ]; then
+        export PATH="$PATH:$dir"
+        break
+    fi
+done
+
 if ! command -v flutter >/dev/null 2>&1; then
     echo
     echo "Flutter bulunamadi. Kurmak icin:"
