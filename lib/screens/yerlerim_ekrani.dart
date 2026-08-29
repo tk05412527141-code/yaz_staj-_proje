@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import '../models/kayitli_konum.dart';
 import '../state/deprem_deposu.dart';
+import '../utils/cam_tema.dart';
 import '../utils/sehirler.dart';
 import '../utils/siddet_hesabi.dart';
 import '../utils/tema.dart';
@@ -25,19 +27,52 @@ class YerlerimEkrani extends StatelessWidget {
       builder: (context, _) {
         final konumlar = depo.konumlar;
 
-        return Scaffold(
-          appBar: AppBar(title: const Text('Yerlerim')),
-          floatingActionButton: FloatingActionButton.extended(
-            onPressed: () => _konumEkle(context),
-            icon: const Icon(Icons.add),
-            label: const Text('Yer ekle'),
-            backgroundColor: Renkler.vurgu,
-            foregroundColor: Colors.white,
-          ),
-          body: konumlar.isEmpty
+        return CamSayfa(
+          baslik: 'Yerlerim',
+          // Ekleme butonu artik icerigin uzerinde yuzen bir cam hap.
+          // GlassScaffold bunu cubuklarla ayni z-duzleminde tutuyor.
+          yuzenler: [
+            Positioned(
+              right: 20,
+              bottom: 24 + MediaQuery.paddingOf(context).bottom,
+              child: GlassButton.custom(
+                onTap: () => _konumEkle(context),
+                label: 'Yer ekle',
+                height: 52,
+                style: GlassButtonStyle.prominent,
+                settings: CamAyar.tonlu(Renkler.vurgu, yogunluk: 0.20),
+                useOwnLayer: true,
+                shape: const LiquidRoundedSuperellipse(borderRadius: 26),
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 20),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.add, size: 20, color: Renkler.vurgu),
+                      SizedBox(width: 8),
+                      Text(
+                        'Yer ekle',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: Renkler.metin,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+          govde: konumlar.isEmpty
               ? _bosDurum(context)
               : ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 90),
+                  padding: EdgeInsets.fromLTRB(
+                    16,
+                    CamOlculer.ustBosluk(context) + 8,
+                    16,
+                    110,
+                  ),
                   children: [
                     const Padding(
                       padding: EdgeInsets.only(bottom: 14, left: 2),
@@ -119,13 +154,11 @@ class YerlerimEkrani extends StatelessWidget {
       }
     }
 
-    return Container(
-      decoration: BoxDecoration(
-        color: Renkler.yuzey,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Renkler.kenarlik),
-      ),
+    return GlassCard(
+      quality: GlassQuality.minimal,
+      padding: EdgeInsets.zero,
       clipBehavior: Clip.antiAlias,
+      shape: const LiquidRoundedSuperellipse(borderRadius: 20),
       child: Column(
         children: [
           ListTile(
@@ -133,8 +166,9 @@ class YerlerimEkrani extends StatelessWidget {
               width: 42,
               height: 42,
               decoration: BoxDecoration(
-                color: Renkler.yuzeyUst,
+                color: Renkler.yuzeyUstSaydam,
                 borderRadius: BorderRadius.circular(11),
+                border: Border.all(color: Renkler.camKenar),
               ),
               child: Icon(KonumSimgesi.ikon(konum.simge),
                   size: 20, color: Renkler.metin),
@@ -170,9 +204,8 @@ class YerlerimEkrani extends StatelessWidget {
               ],
             ),
           ),
-
           if (enGuclu != null) ...[
-            const Divider(),
+            const GlassDivider(),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
               child: Row(
@@ -245,7 +278,7 @@ class YerlerimEkrani extends StatelessWidget {
     final onay = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        backgroundColor: Renkler.yuzey,
+        backgroundColor: Renkler.yuzeySaydam,
         title: const Text('Yeri sil'),
         content: Text('"${konum.ad}" listeden kaldırılsın mı?'),
         actions: [
@@ -255,7 +288,8 @@ class YerlerimEkrani extends StatelessWidget {
           ),
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Sil', style: TextStyle(color: Color(0xFFF85149))),
+            child:
+                const Text('Sil', style: TextStyle(color: Color(0xFFF85149))),
           ),
         ],
       ),

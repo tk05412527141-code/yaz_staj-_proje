@@ -1,7 +1,14 @@
 name: deprem_takip
 description: "Türkiye ve çevresindeki son depremleri AFAD ve Kandilli verileriyle gösteren mobil uygulama."
 publish_to: 'none'
-version: 1.0.0+1
+# 1.1.0 — Liquid Glass (iOS 26) arayuz yenilemesi.
+# App Store'daki yayindaki surum 1.0 (build 1); guncelleme icin hem
+# surum hem build numarasi buyumek zorunda.
+#
+# Build 3: iOS dagitim hedefi 13.0 -> 15.0'a cikarildi, arsiv yeniden
+# uretildi. (Bir build numarasi App Store Connect'e bir kez yuklenir;
+# yeniden kullanilamaz, o yuzden her arsivde artiyor.)
+version: 1.1.0+3
 
 environment:
   sdk: '>=3.6.0 <4.0.0'
@@ -46,6 +53,23 @@ dependencies:
   # Genis aralik: kullandigimiz API (XmlDocument.parse, findAllElements,
   # innerText) 6.3+ ve 7.x'te ayni.
   xml: '>=6.3.0 <8.0.0'
+
+  # iOS 26 "Liquid Glass" tasarim katmani.
+  #
+  # Shader tabanli: gercek bulaniklik, kirilma ve jelly animasyonlari
+  # her platformda (iOS, Android, web, masaustu) calisiyor. Uygulamanin
+  # mantigi bu paketten bagimsiz; yalnizca gorunum katmani.
+  liquid_glass_widgets: ^0.29.5
+
+  # iOS 26 uzerinde yerel UIKit cam bilesenleri.
+  # Yalnizca iOS 26+ cihazlarda devreye giriyor, digerlerinde
+  # yukaridaki shader tabanli uygulamaya dusuyor.
+  native_liquid_glass: ^0.2.7
+
+  # ZORUNLU: cam widgetlar (arama cubugu temizleme ikonu, menuler)
+  # CupertinoIcons kullaniyor. Bu paket olmadan o ikonlar bos
+  # kutu olarak ciziliyor.
+  cupertino_icons: ^1.0.9
 
 dev_dependencies:
   flutter_test:

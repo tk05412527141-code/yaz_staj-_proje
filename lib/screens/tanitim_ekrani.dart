@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import '../models/kayitli_konum.dart';
 import '../state/deprem_deposu.dart';
 import '../utils/sehirler.dart';
+import '../utils/cam_tema.dart';
 import '../utils/tema.dart';
 import 'konum_ekle_ekrani.dart';
 
@@ -71,42 +73,52 @@ class _TanitimEkraniState extends State<TanitimEkrani> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Atla butonu
-            Align(
-              alignment: Alignment.centerRight,
-              child: Padding(
-                padding: const EdgeInsets.only(right: 8, top: 4),
-                child: TextButton(
-                  onPressed: widget.onTamamlandi,
-                  child: const Text(
-                    'Atla',
-                    style: TextStyle(color: Renkler.metinSolgun),
+    // Tanitim da ayni cam dili konusuyor: arkada zemin gradyani,
+    // ustunde cam butonlar. Kullanici uygulamanin gorunumunu ilk
+    // burada goruyor.
+    return GlassScaffold(
+      background: const CamZemin(),
+      statusBarStyle: GlassStatusBarStyle.light,
+      settings: CamAyar.panel,
+      topEdgeFade: false,
+      bottomEdgeFade: false,
+      body: CamGovde(
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Atla butonu
+              Align(
+                alignment: Alignment.centerRight,
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 8, top: 4),
+                  child: TextButton(
+                    onPressed: widget.onTamamlandi,
+                    child: const Text(
+                      'Atla',
+                      style: TextStyle(color: Renkler.metinSolgun),
+                    ),
                   ),
                 ),
               ),
-            ),
 
-            Expanded(
-              child: PageView(
-                controller: _sayfaKontrolcu,
-                onPageChanged: (i) => setState(() => _sayfa = i),
-                children: [
-                  _sayfaBir(),
-                  _sayfaIki(),
-                  _sayfaUc(),
-                ],
+              Expanded(
+                child: PageView(
+                  controller: _sayfaKontrolcu,
+                  onPageChanged: (i) => setState(() => _sayfa = i),
+                  children: [
+                    _sayfaBir(),
+                    _sayfaIki(),
+                    _sayfaUc(),
+                  ],
+                ),
               ),
-            ),
 
-            _noktalar(),
-            const SizedBox(height: 16),
-            _altButonlar(),
-            const SizedBox(height: 12),
-          ],
+              _noktalar(),
+              const SizedBox(height: 16),
+              _altButonlar(),
+              const SizedBox(height: 12),
+            ],
+          ),
         ),
       ),
     );
@@ -133,7 +145,9 @@ class _TanitimEkraniState extends State<TanitimEkrani> {
 
     return _sayfaKabugu(
       gorsel: Icon(
-        konumSayisi > 0 ? Icons.check_circle_outline : Icons.add_location_alt_outlined,
+        konumSayisi > 0
+            ? Icons.check_circle_outline
+            : Icons.add_location_alt_outlined,
         size: 76,
         color: konumSayisi > 0 ? Renkler.canli : Renkler.vurgu,
       ),
@@ -161,17 +175,32 @@ class _TanitimEkraniState extends State<TanitimEkrani> {
               }).toList(),
             ),
           const SizedBox(height: 14),
-          OutlinedButton.icon(
-            onPressed: _konumEkle,
-            icon: const Icon(Icons.add, size: 18),
-            label: Text(konumSayisi > 0 ? 'Bir yer daha ekle' : 'Yer ekle'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Renkler.vurgu,
-              side: const BorderSide(color: Renkler.vurgu),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+          GlassButton.custom(
+            onTap: _konumEkle,
+            label: konumSayisi > 0 ? 'Bir yer daha ekle' : 'Yer ekle',
+            height: 48,
+            settings: CamAyar.tonlu(Renkler.vurgu, yogunluk: 0.16),
+            useOwnLayer: true,
+            shape: const LiquidRoundedSuperellipse(
+              borderRadius: 24,
+              side: BorderSide(color: Renkler.vurgu),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.add, size: 18, color: Renkler.vurgu),
+                  const SizedBox(width: 8),
+                  Text(
+                    konumSayisi > 0 ? 'Bir yer daha ekle' : 'Yer ekle',
+                    style: const TextStyle(
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w700,
+                      color: Renkler.metin,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -265,15 +294,16 @@ class _TanitimEkraniState extends State<TanitimEkrani> {
     );
   }
 
-  Widget _ornekKutu(
-      String buyukluk, String mesafe, String sonuc, Color renk) {
-    return Container(
+  Widget _ornekKutu(String buyukluk, String mesafe, String sonuc, Color renk) {
+    return GlassCard(
       width: 108,
+      quality: GlassQuality.standard,
+      settings: CamAyar.tonlu(renk, yogunluk: 0.14),
+      useOwnLayer: true,
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
-      decoration: BoxDecoration(
-        color: Renkler.yuzey,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: renk.withValues(alpha: 0.5)),
+      shape: LiquidRoundedSuperellipse(
+        borderRadius: 20,
+        side: BorderSide(color: renk.withValues(alpha: 0.5)),
       ),
       child: Column(
         children: [
@@ -335,17 +365,21 @@ class _TanitimEkraniState extends State<TanitimEkrani> {
       padding: const EdgeInsets.symmetric(horizontal: 32),
       child: SizedBox(
         width: double.infinity,
-        child: FilledButton(
-          onPressed: _ilerle,
-          style: FilledButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
-          ),
+        child: GlassButton.custom(
+          onTap: _ilerle,
+          label: sonSayfada ? 'Başla' : 'Devam',
+          height: 54,
+          style: GlassButtonStyle.prominent,
+          settings: CamAyar.tonlu(Renkler.vurgu, yogunluk: 0.22),
+          useOwnLayer: true,
+          shape: const LiquidRoundedSuperellipse(borderRadius: 18),
           child: Text(
             sonSayfada ? 'Başla' : 'Devam',
-            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: Renkler.metin,
+            ),
           ),
         ),
       ),

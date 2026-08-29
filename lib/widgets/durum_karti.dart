@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import '../state/deprem_deposu.dart';
+import '../utils/cam_tema.dart';
 import '../utils/siddet_hesabi.dart';
 import '../utils/tema.dart';
 
@@ -107,9 +109,8 @@ class DurumKarti extends StatelessWidget {
 
   Widget _sakinDurum(BuildContext context) {
     final yerSayisi = depo.konumlar.length;
-    final yerMetni = yerSayisi == 1
-        ? depo.konumlar.first.ad
-        : '$yerSayisi yerinizde';
+    final yerMetni =
+        yerSayisi == 1 ? depo.konumlar.first.ad : '$yerSayisi yerinizde';
 
     return _kabuk(
       renk: Renkler.canli,
@@ -125,9 +126,7 @@ class DurumKarti extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  yerSayisi == 1
-                      ? '$yerMetni sakin'
-                      : 'Yerleriniz sakin',
+                  yerSayisi == 1 ? '$yerMetni sakin' : 'Yerleriniz sakin',
                   style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
@@ -215,19 +214,28 @@ class DurumKarti extends StatelessWidget {
       child: ExcludeSemantics(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-          child: Material(
-            color: Renkler.yuzey,
-            borderRadius: BorderRadius.circular(16),
+          // Listenin odak yuzeyi: tek kart oldugu icin gercek cam
+          // (standard) kullaniyoruz. Cam, durumun rengiyle tonlaniyor -
+          // sakinken yesil, sarsinti varken siddet rengi. Boylece
+          // "her sey normal mi?" sorusu renkten bile anlasiliyor.
+          child: GlassCard(
+            quality: GlassQuality.standard,
+            settings: CamAyar.tonlu(renk, yogunluk: 0.14),
+            useOwnLayer: true,
+            padding: EdgeInsets.zero,
             clipBehavior: Clip.antiAlias,
-            child: InkWell(
-              onTap: onTap,
-              child: Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: renk.withValues(alpha: 0.35)),
+            shape: LiquidRoundedSuperellipse(
+              borderRadius: 20,
+              side: BorderSide(color: renk.withValues(alpha: 0.35)),
+            ),
+            child: Material(
+              type: MaterialType.transparency,
+              child: InkWell(
+                onTap: onTap,
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: child,
                 ),
-                child: child,
               ),
             ),
           ),

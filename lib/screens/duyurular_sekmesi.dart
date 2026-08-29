@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../models/haber.dart';
@@ -8,6 +9,7 @@ import '../services/acil_durum_servisi.dart';
 import '../services/bulten_uretici.dart';
 import '../state/deprem_deposu.dart';
 import '../utils/buyukluk_stili.dart';
+import '../utils/cam_tema.dart';
 import '../utils/sehirler.dart';
 import '../utils/tema.dart';
 import '../widgets/durum_gorunumu.dart';
@@ -147,7 +149,13 @@ class DuyurularSekmesi extends StatelessWidget {
       color: Renkler.vurgu,
       backgroundColor: Renkler.yuzey,
       child: ListView.builder(
-        padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+        // Alt bosluk: yuzen cam sekme cubugu son karti kapatmasin.
+        padding: EdgeInsets.fromLTRB(
+          16,
+          4,
+          16,
+          CamOlculer.altBosluk(context) + 8,
+        ),
         itemCount: bultenler.length + 3,
         itemBuilder: (context, i) {
           if (i == 0) return _haberBolumu(context);
@@ -158,12 +166,14 @@ class DuyurularSekmesi extends StatelessWidget {
             if (!yedek) return const SizedBox.shrink();
             return Padding(
               padding: const EdgeInsets.only(bottom: 12),
-              child: Container(
+              child: GlassCard(
+                quality: GlassQuality.minimal,
+                settings: CamAyar.tonlu(Renkler.canli, yogunluk: 0.14),
+                useOwnLayer: true,
                 padding: const EdgeInsets.all(13),
-                decoration: BoxDecoration(
-                  color: Renkler.canli.withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
+                shape: LiquidRoundedSuperellipse(
+                  borderRadius: 16,
+                  side: BorderSide(
                     color: Renkler.canli.withValues(alpha: 0.35),
                   ),
                 ),
@@ -235,10 +245,10 @@ class DuyurularSekmesi extends StatelessWidget {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 18),
         child: Center(
-          child: SizedBox(
-            width: 20,
-            height: 20,
-            child: CircularProgressIndicator(strokeWidth: 2.2),
+          child: GlassProgressIndicator.circular(
+            size: 22,
+            strokeWidth: 2.2,
+            color: Renkler.vurgu,
           ),
         ),
       );
@@ -296,17 +306,15 @@ class DuyurularSekmesi extends StatelessWidget {
   Widget _haberKarti(BuildContext context, Haber h) {
     final tahmin = HaberFiltresi.tahminIddiasiMi(h);
 
-    return Material(
-      color: Renkler.yuzey,
-      borderRadius: BorderRadius.circular(16),
+    return GlassCard(
+      quality: GlassQuality.minimal,
+      padding: EdgeInsets.zero,
       clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () => _haberiAc(context, h),
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Renkler.kenarlik),
-          ),
+      shape: const LiquidRoundedSuperellipse(borderRadius: 20),
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          onTap: () => _haberiAc(context, h),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -337,7 +345,6 @@ class DuyurularSekmesi extends StatelessWidget {
                     },
                   ),
                 ),
-
               Padding(
                 padding: const EdgeInsets.all(14),
                 child: Column(
@@ -348,8 +355,8 @@ class DuyurularSekmesi extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 9, vertical: 6),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFE3B341)
-                              .withValues(alpha: 0.15),
+                          color:
+                              const Color(0xFFE3B341).withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: const Row(
@@ -452,29 +459,32 @@ class DuyurularSekmesi extends StatelessWidget {
     final renk = BuyuklukStili.renk(d.buyukluk);
     final etki = b.enCokEtkilenen;
 
-    return Material(
-      color: Renkler.yuzey,
-      borderRadius: BorderRadius.circular(16),
+    // Onemli bultenler buyukluk rengiyle tonlanmis camda, digerleri
+    // notr camda. Kalinlasan kenar cizgisi eskisi gibi korunuyor.
+    return GlassCard(
+      quality: GlassQuality.minimal,
+      settings: b.onemli ? CamAyar.tonlu(renk, yogunluk: 0.13) : CamAyar.panel,
+      useOwnLayer: true,
+      padding: EdgeInsets.zero,
       clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () {
-          HapticFeedback.selectionClick();
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => DetayEkrani(deprem: d, depo: depo),
-            ),
-          );
-        },
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: b.onemli
-                  ? renk.withValues(alpha: 0.5)
-                  : Renkler.kenarlik,
-              width: b.onemli ? 1.5 : 1,
-            ),
-          ),
+      shape: LiquidRoundedSuperellipse(
+        borderRadius: 20,
+        side: BorderSide(
+          color: b.onemli ? renk.withValues(alpha: 0.5) : Renkler.camKenar,
+          width: b.onemli ? 1.5 : 1,
+        ),
+      ),
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          onTap: () {
+            HapticFeedback.selectionClick();
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => DetayEkrani(deprem: d, depo: depo),
+              ),
+            );
+          },
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -686,13 +696,11 @@ class DuyurularSekmesi extends StatelessWidget {
   }
 
   Widget _kaynakNotu() {
-    return Container(
+    return GlassCard(
+      quality: GlassQuality.minimal,
       margin: const EdgeInsets.only(top: 4),
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Renkler.yuzeyUst,
-        borderRadius: BorderRadius.circular(14),
-      ),
+      shape: const LiquidRoundedSuperellipse(borderRadius: 18),
       child: const Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

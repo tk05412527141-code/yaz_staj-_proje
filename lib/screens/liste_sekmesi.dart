@@ -1,10 +1,14 @@
+import 'dart:ui' show ImageFilter;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import '../models/deprem.dart';
 import '../services/deprem_servisi.dart';
 import '../state/deprem_deposu.dart';
 import '../utils/buyukluk_stili.dart';
+import '../utils/cam_tema.dart';
 import '../utils/gun_gruplama.dart';
 import '../utils/tema.dart';
 import '../widgets/deprem_karti.dart';
@@ -119,18 +123,31 @@ class _ListeSekmesiState extends State<ListeSekmesi> {
               ),
             ),
           ),
-          IconButton(
-            tooltip: 'Yenile',
-            // Dokunma hedefi en az 48x48 - erisilebilirlik gerekliligi
-            constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-            onPressed: depo.yukleniyor
-                ? null
-                : () {
-                    HapticFeedback.lightImpact();
-                    depo.yenile();
-                  },
-            icon: const Icon(Icons.refresh),
-            color: Renkler.metinSolgun,
+          // Yenile: yuvarlak cam buton. Dokununca cam esniyor (jelly)
+          // ve parliyor - dokunusun kaydedildigi anlasiliyor.
+          Semantics(
+            button: true,
+            label: 'Yenile',
+            child: ExcludeSemantics(
+              child: GlassIconButton(
+                icon: Icon(
+                  Icons.refresh,
+                  size: 20,
+                  color: depo.yukleniyor ? Renkler.kenarlik : Renkler.metin,
+                ),
+                // Dokunma hedefi en az 48x48 - erisilebilirlik gerekliligi
+                size: 48,
+                settings: CamAyar.kontrol,
+                useOwnLayer: true,
+                glowColor: Renkler.vurgu,
+                onPressed: depo.yukleniyor
+                    ? null
+                    : () {
+                        HapticFeedback.lightImpact();
+                        depo.yenile();
+                      },
+              ),
+            ),
           ),
         ],
       ),
@@ -146,25 +163,22 @@ class _ListeSekmesiState extends State<ListeSekmesi> {
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 10),
       child: Row(
         children: [
+          // GlassSearchBar temizleme butonunu kendi yonetiyor; ayri bir
+          // suffixIcon kurmaya gerek kalmadi.
           Expanded(
-            child: TextField(
+            child: GlassSearchBar(
               controller: _aramaKontrolcu,
+              placeholder: 'Şehir veya bölge ara',
               onChanged: depo.aramaDegistir,
-              style: const TextStyle(fontSize: 15, color: Renkler.metin),
-              decoration: InputDecoration(
-                hintText: 'Şehir veya bölge ara',
-                prefixIcon: const Icon(Icons.search, size: 20),
-                suffixIcon: depo.arama.isEmpty
-                    ? null
-                    : IconButton(
-                        tooltip: 'Aramayı temizle',
-                        icon: const Icon(Icons.close, size: 18),
-                        color: Renkler.metinSolgun,
-                        onPressed: () {
-                          _aramaKontrolcu.clear();
-                          depo.aramaDegistir('');
-                        },
-                      ),
+              height: 52,
+              settings: CamAyar.kontrol,
+              useOwnLayer: true,
+              searchIconColor: Renkler.metinSolgun,
+              clearIconColor: Renkler.metinSolgun,
+              textStyle: const TextStyle(fontSize: 15, color: Renkler.metin),
+              placeholderStyle: const TextStyle(
+                fontSize: 15,
+                color: Renkler.metinSolgun,
               ),
             ),
           ),
@@ -180,66 +194,33 @@ class _ListeSekmesiState extends State<ListeSekmesi> {
 
     return Semantics(
       button: true,
-      label: aktif > 0
-          ? 'Filtreler, $aktif filtre aktif'
-          : 'Filtreler',
+      label: aktif > 0 ? 'Filtreler, $aktif filtre aktif' : 'Filtreler',
+      // Aktif filtre sayisi GlassBadge ile gosteriliyor: elle konumlanan
+      // Stack yerine widget'in kendi rozet mekanizmasi.
       child: ExcludeSemantics(
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Material(
-              color: aktif > 0 ? Renkler.vurgu : Renkler.yuzeyUst,
-              borderRadius: BorderRadius.circular(14),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(14),
-                onTap: () {
-                  HapticFeedback.selectionClick();
-                  FiltreSayfasi.ac(context, depo);
-                },
-                child: Container(
-                  width: 52,
-                  height: 52,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: aktif > 0 ? Renkler.vurgu : Renkler.kenarlik,
-                    ),
-                  ),
-                  child: Icon(
-                    Icons.tune,
-                    size: 21,
-                    color: aktif > 0 ? Colors.white : Renkler.metinSolgun,
-                  ),
-                ),
-              ),
+        child: GlassBadge(
+          count: aktif,
+          backgroundColor: Renkler.vurgu,
+          textColor: Colors.white,
+          child: GlassIconButton(
+            icon: Icon(
+              Icons.tune,
+              size: 21,
+              color: aktif > 0 ? Renkler.vurgu : Renkler.metinSolgun,
             ),
-            if (aktif > 0)
-              Positioned(
-                right: -3,
-                top: -3,
-                child: Container(
-                  padding: const EdgeInsets.all(4),
-                  constraints:
-                      const BoxConstraints(minWidth: 19, minHeight: 19),
-                  decoration: BoxDecoration(
-                    color: Renkler.metin,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Renkler.zemin, width: 2),
-                  ),
-                  child: Text(
-                    '$aktif',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: Renkler.zemin,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w800,
-                      height: 1.0,
-                    ),
-                  ),
-                ),
-              ),
-          ],
+            size: 52,
+            shape: GlassIconButtonShape.roundedSquare,
+            borderRadius: 18,
+            settings: aktif > 0
+                ? CamAyar.tonlu(Renkler.vurgu, yogunluk: 0.20)
+                : CamAyar.kontrol,
+            useOwnLayer: true,
+            glowColor: Renkler.vurgu,
+            onPressed: () {
+              HapticFeedback.selectionClick();
+              FiltreSayfasi.ac(context, depo);
+            },
+          ),
         ),
       ),
     );
@@ -263,14 +244,43 @@ class _ListeSekmesiState extends State<ListeSekmesi> {
           final esikRengi = f.esik == null ? null : BuyuklukStili.renk(f.esik!);
           final yerFiltresi = f == HizliFiltre.yerlerim;
 
+          // Esik rengi olan filtreler (3.0+, 4.5+) camin kendisini o
+          // renge boyuyor: hangi siddet sinifini sectigin cipin
+          // renginden anlasiliyor, ayrica yazida sayi da duruyor.
+          final camRengi = secili ? (esikRengi ?? Renkler.vurgu) : null;
+
           return Semantics(
             button: true,
             selected: secili,
             label: '${f.etiket} filtresi',
             child: ExcludeSemantics(
-              child: ChoiceChip(
+              child: GlassChip(
                 selected: secili,
-                onSelected: (_) {
+                label: f.esik == null
+                    ? f.etiket
+                    : '${f.etiket} ${f.esik!.toStringAsFixed(1)}+',
+                icon: yerFiltresi
+                    ? Icon(
+                        depo.konumVar
+                            ? Icons.place
+                            : Icons.add_location_alt_outlined,
+                        size: 14,
+                      )
+                    : (esikRengi != null
+                        ? Icon(Icons.circle, size: 8, color: esikRengi)
+                        : null),
+                iconColor: secili ? Renkler.metin : Renkler.metinSolgun,
+                selectedColor: camRengi?.withValues(alpha: 0.35),
+                settings: camRengi == null
+                    ? CamAyar.kontrol
+                    : CamAyar.tonlu(camRengi, yogunluk: 0.18),
+                useOwnLayer: true,
+                labelStyle: TextStyle(
+                  fontSize: 13,
+                  fontWeight: secili ? FontWeight.w700 : FontWeight.w500,
+                  color: secili ? Renkler.metin : Renkler.metinSolgun,
+                ),
+                onTap: () {
                   HapticFeedback.selectionClick();
                   // "Yerlerim" ancak kayitli bir yer varsa anlamli
                   if (yerFiltresi && !depo.konumVar) {
@@ -279,42 +289,6 @@ class _ListeSekmesiState extends State<ListeSekmesi> {
                   }
                   depo.hizliFiltreDegistir(f);
                 },
-                label: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (yerFiltresi) ...[
-                      Icon(
-                        depo.konumVar
-                            ? Icons.place
-                            : Icons.add_location_alt_outlined,
-                        size: 14,
-                        color: secili ? Colors.white : Renkler.metinSolgun,
-                      ),
-                      const SizedBox(width: 5),
-                    ],
-                    if (esikRengi != null && !secili) ...[
-                      Container(
-                        width: 7,
-                        height: 7,
-                        decoration: BoxDecoration(
-                          color: esikRengi,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                    ],
-                    Text(
-                      f.esik == null
-                          ? f.etiket
-                          : '${f.etiket} ${f.esik!.toStringAsFixed(1)}+',
-                    ),
-                  ],
-                ),
-                labelStyle: TextStyle(
-                  fontSize: 13,
-                  fontWeight: secili ? FontWeight.w700 : FontWeight.w500,
-                  color: secili ? Colors.white : Renkler.metin,
-                ),
               ),
             ),
           );
@@ -348,9 +322,8 @@ class _ListeSekmesiState extends State<ListeSekmesi> {
         aciklama: depo.hata!,
         eylemYazisi: 'Tekrar dene',
         onEylem: depo.yenile,
-        ikinciEylemYazisi: depo.kaynak == VeriKaynagi.otomatik
-            ? null
-            : 'Otomatik kaynağa geç',
+        ikinciEylemYazisi:
+            depo.kaynak == VeriKaynagi.otomatik ? null : 'Otomatik kaynağa geç',
         onIkinciEylem: depo.kaynak == VeriKaynagi.otomatik
             ? null
             : () => depo.kaynakDegistir(VeriKaynagi.otomatik),
@@ -400,8 +373,7 @@ class _ListeSekmesiState extends State<ListeSekmesi> {
       // Secili kaynak zaman araligini karsilayamiyorsa uyar.
       // Sessizce calismayan bir filtre, bozuk bir filtreden daha
       // yanilticidir: kullanici 30 gun sanip 24 saat gorur.
-      if (depo.veriGecikmeli)
-        SliverToBoxAdapter(child: _gecikmeUyarisi(depo)),
+      if (depo.veriGecikmeli) SliverToBoxAdapter(child: _gecikmeUyarisi(depo)),
       if (depo.kapsamUyarisiVar)
         SliverToBoxAdapter(child: _kapsamUyarisi(depo)),
       SliverToBoxAdapter(
@@ -432,7 +404,13 @@ class _ListeSekmesiState extends State<ListeSekmesi> {
       }
     }
 
-    sliverlar.add(const SliverToBoxAdapter(child: SizedBox(height: 20)));
+    // Alt sekme cubugu artik listenin UZERINDE yuzuyor. Son kartin
+    // cubugun altinda kalmamasi icin cubuk yuksekligi kadar bosluk.
+    sliverlar.add(
+      SliverToBoxAdapter(
+        child: SizedBox(height: CamOlculer.altBosluk(context) + 8),
+      ),
+    );
     return sliverlar;
   }
 
@@ -465,14 +443,14 @@ class _ListeSekmesiState extends State<ListeSekmesi> {
   Widget _gecikmeUyarisi(DepremDeposu depo) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
-      child: Container(
+      child: GlassCard(
+        quality: GlassQuality.minimal,
+        settings: CamAyar.tonlu(const Color(0xFFF85149), yogunluk: 0.16),
+        useOwnLayer: true,
         padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF85149).withValues(alpha: 0.10),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: const Color(0xFFF85149).withValues(alpha: 0.35),
-          ),
+        shape: const LiquidRoundedSuperellipse(
+          borderRadius: 14,
+          side: BorderSide(color: Color(0x59F85149)),
         ),
         child: Row(
           children: [
@@ -499,19 +477,18 @@ class _ListeSekmesiState extends State<ListeSekmesi> {
   Widget _kapsamUyarisi(DepremDeposu depo) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
-      child: Container(
+      child: GlassCard(
+        quality: GlassQuality.minimal,
+        settings: CamAyar.tonlu(const Color(0xFFE3B341), yogunluk: 0.16),
+        useOwnLayer: true,
         padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: const Color(0xFFE3B341).withValues(alpha: 0.10),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: const Color(0xFFE3B341).withValues(alpha: 0.35),
-          ),
+        shape: const LiquidRoundedSuperellipse(
+          borderRadius: 14,
+          side: BorderSide(color: Color(0x59E3B341)),
         ),
         child: Row(
           children: [
-            const Icon(Icons.info_outline,
-                size: 17, color: Color(0xFFE3B341)),
+            const Icon(Icons.info_outline, size: 17, color: Color(0xFFE3B341)),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
@@ -589,7 +566,6 @@ class _ListeSekmesiState extends State<ListeSekmesi> {
       MaterialPageRoute(builder: (_) => YerlerimEkrani(depo: depo)),
     );
   }
-
 }
 
 /// Kaydirirken ekranin ustune yapisan gun basligi.
@@ -609,37 +585,44 @@ class _GunBasligiDelegate extends SliverPersistentHeaderDelegate {
 
   @override
   Widget build(BuildContext context, double kayma, bool araliktaMi) {
-    return Container(
-      height: _yukseklik,
-      // Opak zemin: altindan gecen kartlar basligin icinden gorunmemeli
-      color: Renkler.zemin,
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-      alignment: Alignment.centerLeft,
-      child: Semantics(
-        header: true,
-        child: Row(
-          children: [
-            Text(
-              baslik,
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w800,
-                color: Renkler.metin,
-                letterSpacing: 0.2,
-              ),
+    // Yapiskan gun basligi da cam: altindan gecen kartlar bulaniklasarak
+    // goruluyor ama baslik yazisi okunur kaliyor. Opak seritler cam
+    // tasarimda "delik" gibi duruyordu.
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+        child: Container(
+          height: _yukseklik,
+          color: Renkler.zemin.withValues(alpha: 0.55),
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+          alignment: Alignment.centerLeft,
+          child: Semantics(
+            header: true,
+            child: Row(
+              children: [
+                Text(
+                  baslik,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: Renkler.metin,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  '$adet',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Renkler.metinSolgun,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                const Expanded(child: Divider(color: Renkler.camKenar)),
+              ],
             ),
-            const SizedBox(width: 8),
-            Text(
-              '$adet',
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: Renkler.metinSolgun,
-              ),
-            ),
-            const SizedBox(width: 10),
-            const Expanded(child: Divider(color: Renkler.kenarlik)),
-          ],
+          ),
         ),
       ),
     );

@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import '../models/deprem.dart';
 import '../state/deprem_deposu.dart';
 import '../utils/buyukluk_stili.dart';
+import '../utils/cam_tema.dart';
 import '../utils/tema.dart';
 import 'detay_ekrani.dart';
 
@@ -87,15 +89,20 @@ class _HaritaSekmesiState extends State<HaritaSekmesi> {
               ),
             ),
 
-            // Lejant
-            Positioned(left: 12, bottom: 12, child: _lejant()),
+            // Lejant ve secili kart, yuzen cam sekme cubugunun ustunde
+            // durmali; yoksa cubugun altinda kalip okunmuyorlar.
+            Positioned(
+              left: 12,
+              bottom: CamOlculer.altBosluk(context),
+              child: _lejant(),
+            ),
 
             // Secili depremin alt karti
             if (_secili != null)
               Positioned(
                 left: 12,
                 right: 12,
-                bottom: 12,
+                bottom: CamOlculer.altBosluk(context),
                 child: _seciliKart(_secili!),
               ),
           ],
@@ -162,14 +169,15 @@ class _HaritaSekmesiState extends State<HaritaSekmesi> {
     }).toList();
   }
 
+  /// Haritanin uzerinde yuzen cam kapsul.
+  ///
+  /// Harita, cam icin ideal zemin: altindaki renkli kareler kirilinca
+  /// kapsul gercekten cam gibi duruyor. Yariopak bir kutu yerine
+  /// harita bilgiyi tasiyor, cam sadece okunurlugu sagliyor.
   Widget _bilgiKapsulu(String yazi) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-      decoration: BoxDecoration(
-        color: Renkler.yuzey.withValues(alpha: 0.94),
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: Renkler.kenarlik),
-      ),
+    return GlassCard(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      shape: const LiquidRoundedSuperellipse(borderRadius: 22),
       child: Text(
         yazi,
         style: const TextStyle(
@@ -182,28 +190,24 @@ class _HaritaSekmesiState extends State<HaritaSekmesi> {
   }
 
   Widget _yuvarlakButon(IconData ikon, String ipucu, VoidCallback onTap) {
-    return Material(
-      color: Renkler.yuzey.withValues(alpha: 0.94),
-      shape: const CircleBorder(
-        side: BorderSide(color: Renkler.kenarlik),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: IconButton(
-        tooltip: ipucu,
-        onPressed: onTap,
-        icon: Icon(ikon, size: 20, color: Renkler.metin),
+    return Semantics(
+      button: true,
+      label: ipucu,
+      child: ExcludeSemantics(
+        child: GlassIconButton(
+          icon: Icon(ikon, size: 20, color: Renkler.metin),
+          size: 48,
+          glowColor: Renkler.vurgu,
+          onPressed: onTap,
+        ),
       ),
     );
   }
 
   Widget _lejant() {
-    return Container(
+    return GlassCard(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: Renkler.yuzey.withValues(alpha: 0.94),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Renkler.kenarlik),
-      ),
+      shape: const LiquidRoundedSuperellipse(borderRadius: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
@@ -255,70 +259,76 @@ class _HaritaSekmesiState extends State<HaritaSekmesi> {
   Widget _seciliKart(Deprem d) {
     final renk = BuyuklukStili.renk(d.buyukluk);
 
-    return Material(
-      color: Renkler.yuzey,
-      borderRadius: BorderRadius.circular(16),
+    // Secili kart, buyukluk rengiyle tonlanmis cam: haritadaki isaretci
+    // ile karti gozle eslestirmek kolaylasiyor.
+    return GlassCard(
+      settings: CamAyar.tonlu(renk, yogunluk: 0.14),
+      useOwnLayer: true,
+      padding: EdgeInsets.zero,
       clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => DetayEkrani(deprem: d, depo: widget.depo),
+      shape: LiquidRoundedSuperellipse(
+        borderRadius: 20,
+        side: BorderSide(color: renk.withValues(alpha: 0.35)),
+      ),
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => DetayEkrani(deprem: d, depo: widget.depo),
+            ),
           ),
-        ),
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Renkler.kenarlik),
-          ),
-          padding: const EdgeInsets.all(14),
-          child: Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: BuyuklukStili.zeminTonu(d.buyukluk),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: renk.withValues(alpha: 0.45)),
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  d.buyukluk.toStringAsFixed(1),
-                  style: TextStyle(
-                    color: renk,
-                    fontSize: 19,
-                    fontWeight: FontWeight.w800,
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: BuyuklukStili.zeminTonu(d.buyukluk),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: renk.withValues(alpha: 0.45)),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    d.buyukluk.toStringAsFixed(1),
+                    style: TextStyle(
+                      color: renk,
+                      fontSize: 19,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      d.yer,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 14.5,
-                        fontWeight: FontWeight.w600,
-                        color: Renkler.metin,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        d.yer,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w600,
+                          color: Renkler.metin,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      '${d.gecenSure} · ${d.derinlik.toStringAsFixed(1)} km',
-                      style: const TextStyle(
-                        fontSize: 12.5,
-                        color: Renkler.metinSolgun,
+                      const SizedBox(height: 3),
+                      Text(
+                        '${d.gecenSure} · ${d.derinlik.toStringAsFixed(1)} km',
+                        style: const TextStyle(
+                          fontSize: 12.5,
+                          color: Renkler.metinSolgun,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              const Icon(Icons.chevron_right, color: Renkler.metinSolgun),
-            ],
+                const Icon(Icons.chevron_right, color: Renkler.metinSolgun),
+              ],
+            ),
           ),
         ),
       ),

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import '../services/tercih_servisi.dart';
+import '../utils/cam_tema.dart';
+import '../utils/tema.dart';
 import '../state/deprem_deposu.dart';
 import 'acilis_ekrani.dart';
 import 'acil_durum_ekrani.dart';
@@ -28,8 +31,7 @@ class AnaKabuk extends StatefulWidget {
   State<AnaKabuk> createState() => _AnaKabukState();
 }
 
-class _AnaKabukState extends State<AnaKabuk>
-    with WidgetsBindingObserver {
+class _AnaKabukState extends State<AnaKabuk> with WidgetsBindingObserver {
   final _depo = DepremDeposu();
   int _sekme = 0;
 
@@ -112,20 +114,36 @@ class _AnaKabukState extends State<AnaKabuk>
 
     // IndexedStack: sekme degistirince ekranlar bastan olusmaz,
     // kaydirma konumu ve harita gorunumu korunur.
-    return Scaffold(
-      body: IndexedStack(
-        index: _sekme,
-        children: [
-          ListeSekmesi(depo: _depo),
-          HaritaSekmesi(depo: _depo),
-          DuyurularSekmesi(depo: _depo),
-          AcilDurumEkrani(depo: _depo),
-          AyarlarSekmesi(depo: _depo),
-        ],
+    //
+    // GlassScaffold: zemin gradyani, cam katmani, cubuklarin z-sirasi ve
+    // kenar solmasi tek widget'ta hallediliyor. Alt cubuk artik icerigin
+    // uzerinde yuzen bir cam hap; sekmeler zeminin uzerinden gecerken
+    // arkasindaki liste bulaniklasarak goruluyor.
+    return GlassScaffold(
+      background: const CamZemin(),
+      statusBarStyle: GlassStatusBarStyle.light,
+      settings: CamAyar.panel,
+      // CamGovde: sekmelerdeki ListTile, TextField, RefreshIndicator gibi
+      // Material widgetlari cam iskelet icinde de calissin diye.
+      body: CamGovde(
+        child: IndexedStack(
+          index: _sekme,
+          children: [
+            ListeSekmesi(depo: _depo),
+            HaritaSekmesi(depo: _depo),
+            DuyurularSekmesi(depo: _depo),
+            AcilDurumEkrani(depo: _depo),
+            AyarlarSekmesi(depo: _depo),
+          ],
+        ),
       ),
-      bottomNavigationBar: NavigationBar(
+      // Ust kenar solmasi kapali: sekmelerin kendi basliklari var,
+      // ust tarafta gizlenecek bir cubuk yok.
+      topEdgeFade: false,
+      bottomEdgeFadeExtent: 12,
+      bottomBar: camCubuk(GlassTabBar.bottom(
         selectedIndex: _sekme,
-        onDestinationSelected: (i) {
+        onTabSelected: (i) {
           if (i != _sekme) HapticFeedback.selectionClick();
           setState(() => _sekme = i);
 
@@ -134,39 +152,60 @@ class _AnaKabukState extends State<AnaKabuk>
           // gecildiginde bayat veriyi tazeliyoruz.
           if (i == _duyuruSekmesi) _depo.duyurulariTazele();
         },
-        destinations: const [
-          NavigationDestination(
+        // Bes sekme dar telefonlara da sigsin diye yatay boslugu ve
+        // yazi boyutunu kisiyoruz.
+        horizontalPadding: 14,
+        verticalPadding: CamOlculer.cubukDikeyBosluk,
+        spacing: 2,
+        tabPadding: const EdgeInsets.symmetric(horizontal: 2),
+        iconSize: 22,
+        labelFontSize: 10,
+        settings: CamAyar.cubuk,
+        indicatorColor: Renkler.vurgu.withValues(alpha: 0.30),
+        selectedIconColor: Renkler.vurgu,
+        unselectedIconColor: Renkler.metinSolgun,
+        selectedLabelColor: Renkler.metin,
+        unselectedLabelColor: Renkler.metinSolgun,
+        tabs: const [
+          GlassTab(
             icon: Icon(Icons.list_alt_outlined),
-            selectedIcon: Icon(Icons.list_alt),
+            activeIcon: Icon(Icons.list_alt),
             label: 'Liste',
-            tooltip: 'Deprem listesi',
+            semanticLabel: 'Deprem listesi',
+            glowColor: Renkler.vurgu,
           ),
-          NavigationDestination(
+          GlassTab(
             icon: Icon(Icons.map_outlined),
-            selectedIcon: Icon(Icons.map),
+            activeIcon: Icon(Icons.map),
             label: 'Harita',
-            tooltip: 'Harita görünümü',
+            semanticLabel: 'Harita görünümü',
+            glowColor: Renkler.vurgu,
           ),
-          NavigationDestination(
+          GlassTab(
             icon: Icon(Icons.campaign_outlined),
-            selectedIcon: Icon(Icons.campaign),
+            activeIcon: Icon(Icons.campaign),
             label: 'Duyuru',
-            tooltip: 'Resmî verilerden üretilen bültenler',
+            semanticLabel: 'Resmî verilerden üretilen bültenler',
+            glowColor: Renkler.vurgu,
           ),
-          NavigationDestination(
+          GlassTab(
             icon: Icon(Icons.sos_outlined),
-            selectedIcon: Icon(Icons.sos),
+            activeIcon: Icon(Icons.sos),
             label: 'Acil',
-            tooltip: 'Acil durum: konum mesajı ve yakınlar',
+            semanticLabel: 'Acil durum: konum mesajı ve yakınlar',
+            // Acil sekmesi kirmizi parliyor: panik aninda gozun
+            // dogru yere gitmesi icin renk kodlamasi.
+            glowColor: Color(0xFFE5484D),
           ),
-          NavigationDestination(
+          GlassTab(
             icon: Icon(Icons.settings_outlined),
-            selectedIcon: Icon(Icons.settings),
+            activeIcon: Icon(Icons.settings),
             label: 'Ayarlar',
-            tooltip: 'Ayarlar ve yerlerim',
+            semanticLabel: 'Ayarlar ve yerlerim',
+            glowColor: Renkler.vurgu,
           ),
         ],
-      ),
+      )),
     );
   }
 }

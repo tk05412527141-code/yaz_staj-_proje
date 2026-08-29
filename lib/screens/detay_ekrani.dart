@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import '../models/deprem.dart';
 import '../state/deprem_deposu.dart';
 import '../widgets/deprem_karti.dart';
 import '../utils/buyukluk_stili.dart';
+import '../utils/cam_tema.dart';
 import '../utils/sehirler.dart';
 import '../utils/siddet_hesabi.dart';
 import '../utils/tema.dart';
@@ -26,114 +28,146 @@ class DetayEkrani extends StatelessWidget {
     final renk = BuyuklukStili.renk(deprem.buyukluk);
     final konum = LatLng(deprem.enlem, deprem.boylam);
 
-    return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            pinned: true,
-            expandedHeight: 190,
-            backgroundColor: Renkler.zemin,
-            surfaceTintColor: Colors.transparent,
-            actions: [
-              IconButton(
-                tooltip: 'Paylaş',
-                icon: const Icon(Icons.ios_share),
-                onPressed: () => _paylasimSayfasi(context),
-              ),
-            ],
-            flexibleSpace: FlexibleSpaceBar(
-              background: _ustBant(renk),
-              titlePadding:
-                  const EdgeInsets.only(left: 56, right: 56, bottom: 14),
-              title: Text(
-                deprem.yer,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: Renkler.metin,
-                ),
-              ),
+    // Zemin, depremin buyukluk rengiyle isiklandiriliyor: ekrana
+    // girer girmez sarsintinin siddeti renkten hissediliyor.
+    // Cam ust cubuk bu zeminin uzerinde yuzuyor, icerik altindan
+    // bulaniklasarak geciyor.
+    return GlassScaffold(
+      background: CamZemin(vurguRengi: renk),
+      statusBarStyle: GlassStatusBarStyle.light,
+      settings: CamAyar.panel,
+      appBar: camCubuk(GlassAppBar(
+        leading: Semantics(
+          button: true,
+          label: 'Geri',
+          child: ExcludeSemantics(
+            child: GlassIconButton(
+              icon: const Icon(Icons.arrow_back_ios_new,
+                  size: 17, color: Renkler.metin),
+              size: 40,
+              settings: CamAyar.kontrol,
+              useOwnLayer: true,
+              glowColor: renk,
+              onPressed: () => Navigator.of(context).pop(),
             ),
           ),
-
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Ust satir: buyukluk / derinlik / zaman ozetleri
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _olcuKutusu(
-                          'BÜYÜKLÜK',
-                          deprem.buyukluk.toStringAsFixed(1),
-                          BuyuklukStili.etiket(deprem.buyukluk),
-                          renk,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: _olcuKutusu(
-                          'DERİNLİK',
-                          deprem.derinlik.toStringAsFixed(1),
-                          'kilometre',
-                          Renkler.metin,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-
-                  _yerlerinizdeBolumu(),
-
-                  _haritaKarti(konum, renk),
-                  const SizedBox(height: 16),
-
-                  _detayKarti(context),
-                  const SizedBox(height: 14),
-
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _eylemButonu(
-                          Icons.copy_all_outlined,
-                          'Bilgileri kopyala',
-                          () => _kopyala(
-                            context,
-                            deprem.paylasimMetni,
-                            'Deprem bilgisi panoya kopyalandı',
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: _eylemButonu(
-                          Icons.my_location,
-                          'Koordinatları kopyala',
-                          () => _kopyala(
-                            context,
-                            deprem.koordinatMetni,
-                            'Koordinatlar panoya kopyalandı',
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 18),
-                  const Text(
-                    'Harita verileri © OpenStreetMap katkıda bulunanlar.',
-                    style: TextStyle(fontSize: 11, color: Renkler.metinSolgun),
-                  ),
-                ],
+        ),
+        title: Text(
+          deprem.yer,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+            color: Renkler.metin,
+          ),
+        ),
+        actions: [
+          Semantics(
+            button: true,
+            label: 'Paylaş',
+            child: ExcludeSemantics(
+              child: GlassIconButton(
+                icon:
+                    const Icon(Icons.ios_share, size: 19, color: Renkler.metin),
+                size: 40,
+                settings: CamAyar.kontrol,
+                useOwnLayer: true,
+                glowColor: renk,
+                onPressed: () => _paylasimSayfasi(context),
               ),
             ),
           ),
         ],
+      )),
+      body: CamGovde(
+        child: CustomScrollView(
+          slivers: [
+            // Cam cubuk icerigin UZERINDE duruyor; bant onun altindan
+            // baslasin diye cubuk yuksekligi kadar bosluk biraktik.
+            SliverToBoxAdapter(
+              child: SizedBox(height: CamOlculer.ustBosluk(context)),
+            ),
+            SliverToBoxAdapter(child: _ustBant(renk)),
+
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Ust satir: buyukluk / derinlik / zaman ozetleri
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _olcuKutusu(
+                            'BÜYÜKLÜK',
+                            deprem.buyukluk.toStringAsFixed(1),
+                            BuyuklukStili.etiket(deprem.buyukluk),
+                            renk,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _olcuKutusu(
+                            'DERİNLİK',
+                            deprem.derinlik.toStringAsFixed(1),
+                            'kilometre',
+                            Renkler.metin,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    _yerlerinizdeBolumu(),
+
+                    _haritaKarti(konum, renk),
+                    const SizedBox(height: 16),
+
+                    _detayKarti(context),
+                    const SizedBox(height: 14),
+
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _eylemButonu(
+                            Icons.copy_all_outlined,
+                            'Bilgileri kopyala',
+                            () => _kopyala(
+                              context,
+                              deprem.paylasimMetni,
+                              'Deprem bilgisi panoya kopyalandı',
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _eylemButonu(
+                            Icons.my_location,
+                            'Koordinatları kopyala',
+                            () => _kopyala(
+                              context,
+                              deprem.koordinatMetni,
+                              'Koordinatlar panoya kopyalandı',
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 18),
+                    const Text(
+                      'Harita verileri © OpenStreetMap katkıda bulunanlar.',
+                      style:
+                          TextStyle(fontSize: 11, color: Renkler.metinSolgun),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -142,43 +176,43 @@ class DetayEkrani extends StatelessWidget {
 
   Widget _ustBant(Color renk) {
     return Container(
+      height: 168,
+      // Alt uc seffaf: bandin altindaki zemin gradyani kesintisiz
+      // devam etsin, camin kiracagi yuzey bozulmasin.
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            renk.withValues(alpha: 0.35),
-            Renkler.zemin,
+            renk.withValues(alpha: 0.32),
+            renk.withValues(alpha: 0),
           ],
         ),
       ),
-      child: SafeArea(
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Listedeki rozetten buyuyerek gelen sayi (Hero gecisi)
-              Hero(
-                tag: DepremKarti.heroEtiketi(deprem),
-                flightShuttleBuilder: (_, __, ___, ____, _____) => Material(
-                  type: MaterialType.transparency,
-                  child: _buyukSayi(renk),
-                ),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Listedeki rozetten buyuyerek gelen sayi (Hero gecisi)
+            Hero(
+              tag: DepremKarti.heroEtiketi(deprem),
+              flightShuttleBuilder: (_, __, ___, ____, _____) => Material(
+                type: MaterialType.transparency,
                 child: _buyukSayi(renk),
               ),
-              const SizedBox(height: 2),
-              Text(
-                BuyuklukStili.etiket(deprem.buyukluk).toUpperCase(),
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1.6,
-                  color: renk.withValues(alpha: 0.9),
-                ),
+              child: _buyukSayi(renk),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              BuyuklukStili.etiket(deprem.buyukluk).toUpperCase(),
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1.6,
+                color: renk.withValues(alpha: 0.9),
               ),
-              const SizedBox(height: 24),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -199,15 +233,15 @@ class DetayEkrani extends StatelessWidget {
     );
   }
 
-  Widget _olcuKutusu(
-      String etiket, String deger, String altYazi, Color renk) {
-    return Container(
+  Widget _olcuKutusu(String etiket, String deger, String altYazi, Color renk) {
+    // Olcu kutulari sabit ve kaydirilmiyor: burada premium cam
+    // kullanmak guvenli ve en zengin gorunumu veriyor.
+    return GlassCard(
+      quality: GlassQuality.standard,
+      settings: CamAyar.tonlu(renk, yogunluk: 0.10),
+      useOwnLayer: true,
       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 14),
-      decoration: BoxDecoration(
-        color: Renkler.yuzey,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Renkler.kenarlik),
-      ),
+      shape: const LiquidRoundedSuperellipse(borderRadius: 18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -271,17 +305,14 @@ class DetayEkrani extends StatelessWidget {
             ),
           ),
         ),
-        Container(
-          decoration: BoxDecoration(
-            color: Renkler.yuzey,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Renkler.kenarlik),
-          ),
+        GlassCard(
+          padding: EdgeInsets.zero,
           clipBehavior: Clip.antiAlias,
+          shape: const LiquidRoundedSuperellipse(borderRadius: 20),
           child: Column(
             children: [
               for (var i = 0; i < satirlar.length; i++) ...[
-                if (i > 0) const Divider(),
+                if (i > 0) const GlassDivider(),
                 _yerSatiri(satirlar[i].konum.ad, satirlar[i].konum.simge,
                     satirlar[i].sonuc),
               ],
@@ -323,8 +354,8 @@ class DetayEkrani extends StatelessWidget {
               color: s.seviye.renk.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(KonumSimgesi.ikon(simge),
-                size: 18, color: s.seviye.renk),
+            child:
+                Icon(KonumSimgesi.ikon(simge), size: 18, color: s.seviye.renk),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -436,25 +467,22 @@ class DetayEkrani extends StatelessWidget {
   }
 
   Widget _detayKarti(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Renkler.yuzey,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Renkler.kenarlik),
-      ),
+    return GlassCard(
+      padding: EdgeInsets.zero,
       clipBehavior: Clip.antiAlias,
+      shape: const LiquidRoundedSuperellipse(borderRadius: 20),
       child: Column(
         children: [
           _satir(Icons.place_outlined, 'Konum', deprem.yer),
-          const Divider(),
+          const GlassDivider(),
           _satir(Icons.schedule, 'Tarih ve saat',
               '${deprem.tarihMetni}  ·  ${deprem.gecenSure}'),
-          const Divider(),
+          const GlassDivider(),
           _satir(Icons.my_location, 'Koordinatlar', deprem.koordinatMetni),
-          const Divider(),
+          const GlassDivider(),
           _satir(Icons.verified_outlined, 'Veri kaynağı', deprem.kaynak),
           if (deprem.id.isNotEmpty) ...[
-            const Divider(),
+            const GlassDivider(),
             _satir(Icons.tag, 'Kayıt numarası', deprem.id),
           ],
         ],
@@ -500,33 +528,30 @@ class DetayEkrani extends StatelessWidget {
   }
 
   Widget _eylemButonu(IconData ikon, String yazi, VoidCallback onTap) {
-    return Material(
-      color: Renkler.yuzeyUst,
-      borderRadius: BorderRadius.circular(14),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: Renkler.kenarlik),
-          ),
-          child: Column(
-            children: [
-              Icon(ikon, size: 20, color: Renkler.metin),
-              const SizedBox(height: 6),
-              Text(
-                yazi,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w600,
-                  color: Renkler.metin,
-                ),
+    return GlassButton.custom(
+      onTap: onTap,
+      label: yazi,
+      height: 78,
+      settings: CamAyar.kontrol,
+      useOwnLayer: true,
+      shape: const LiquidRoundedSuperellipse(borderRadius: 18),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(ikon, size: 20, color: Renkler.metin),
+            const SizedBox(height: 6),
+            Text(
+              yazi,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+                color: Renkler.metin,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -541,9 +566,10 @@ class DetayEkrani extends StatelessWidget {
   /// Sistem paylasim menusu yerine panoya kopyalama tercih edildi:
   /// ek bir eklenti gerektirmiyor ve her platformda ayni sekilde calisiyor.
   void _paylasimSayfasi(BuildContext context) {
-    showModalBottomSheet<void>(
+    GlassSheet.show<void>(
       context: context,
-      showDragHandle: true,
+      settings: CamAyar.panel,
+      dragIndicatorColor: Renkler.metinSolgun,
       builder: (sayfaContext) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -559,30 +585,34 @@ class DetayEkrani extends StatelessWidget {
                 ),
               ),
             ),
-            ListTile(
+            GlassListTile(
               leading: const Icon(Icons.description_outlined),
               title: const Text('Tüm bilgileri kopyala'),
-              subtitle: const Text('Konum, büyüklük, derinlik, tarih, bağlantı'),
+              subtitle:
+                  const Text('Konum, büyüklük, derinlik, tarih, bağlantı'),
+              leadingIconColor: Renkler.vurgu,
               onTap: () {
                 Navigator.of(sayfaContext).pop();
                 _kopyala(context, deprem.paylasimMetni,
                     'Deprem bilgisi panoya kopyalandı');
               },
             ),
-            ListTile(
+            GlassListTile(
               leading: const Icon(Icons.my_location),
               title: const Text('Koordinatları kopyala'),
               subtitle: Text(deprem.koordinatMetni),
+              leadingIconColor: Renkler.vurgu,
               onTap: () {
                 Navigator.of(sayfaContext).pop();
                 _kopyala(context, deprem.koordinatMetni,
                     'Koordinatlar panoya kopyalandı');
               },
             ),
-            ListTile(
+            GlassListTile(
               leading: const Icon(Icons.link),
               title: const Text('Harita bağlantısını kopyala'),
               subtitle: const Text('Tarayıcıda açılabilir konum bağlantısı'),
+              leadingIconColor: Renkler.vurgu,
               onTap: () {
                 Navigator.of(sayfaContext).pop();
                 _kopyala(context, deprem.haritaBaglantisi,

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import '../services/deprem_servisi.dart';
 import '../services/tercih_servisi.dart';
 import '../models/hazirlik_maddesi.dart';
 import '../state/deprem_deposu.dart';
+import '../utils/cam_tema.dart';
 import '../utils/tema.dart';
 import 'hazirlik_ekrani.dart';
 import 'yerlerim_ekrani.dart';
@@ -23,7 +25,13 @@ class AyarlarSekmesi extends StatelessWidget {
         return SafeArea(
           bottom: false,
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
+            // Alt bosluk: yuzen cam sekme cubugu son bolumu kapatmasin.
+            padding: EdgeInsets.fromLTRB(
+              20,
+              14,
+              20,
+              CamOlculer.altBosluk(context) + 8,
+            ),
             children: [
               const Text(
                 'Ayarlar',
@@ -35,7 +43,6 @@ class AyarlarSekmesi extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 22),
-
               _bolumBasligi('YERLERİM'),
               _kutu(
                 child: ListTile(
@@ -86,7 +93,6 @@ class AyarlarSekmesi extends StatelessWidget {
                   ),
                 ),
               ),
-
               const SizedBox(height: 22),
               _bolumBasligi('DEPREM ÖNCESİ'),
               _kutu(
@@ -138,7 +144,6 @@ class AyarlarSekmesi extends StatelessWidget {
                   ),
                 ),
               ),
-
               const SizedBox(height: 22),
               _bolumBasligi('VERİ KAYNAĞI'),
               _kutu(
@@ -182,12 +187,11 @@ class AyarlarSekmesi extends StatelessWidget {
                           ),
                         ),
                       ),
-                      if (k != VeriKaynagi.values.last) const Divider(),
+                      if (k != VeriKaynagi.values.last) const GlassDivider(),
                     ],
                   ],
                 ),
               ),
-
               const SizedBox(height: 22),
               _bolumBasligi('TERCİHLER'),
               _kutu(
@@ -200,7 +204,7 @@ class AyarlarSekmesi extends StatelessWidget {
                           ? 'Son 24 saat'
                           : 'Son ${depo.gunSayisi} gün',
                     ),
-                    const Divider(),
+                    const GlassDivider(),
                     _satir(
                       Icons.speed,
                       'Minimum büyüklük',
@@ -208,12 +212,12 @@ class AyarlarSekmesi extends StatelessWidget {
                           ? 'Sınır yok'
                           : depo.minBuyukluk.toStringAsFixed(1),
                     ),
-                    const Divider(),
+                    const GlassDivider(),
                     _satir(Icons.sort, 'Sıralama', depo.siralama.etiket),
-                    const Divider(),
+                    const GlassDivider(),
                     ListTile(
-                      leading: const Icon(Icons.restart_alt,
-                          color: Renkler.vurgu),
+                      leading:
+                          const Icon(Icons.restart_alt, color: Renkler.vurgu),
                       title: const Text(
                         'Filtreleri sıfırla',
                         style: TextStyle(
@@ -235,7 +239,6 @@ class AyarlarSekmesi extends StatelessWidget {
                   ],
                 ),
               ),
-
               const SizedBox(height: 8),
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 4),
@@ -249,16 +252,16 @@ class AyarlarSekmesi extends StatelessWidget {
                   ),
                 ),
               ),
-
               const SizedBox(height: 22),
               _bolumBasligi('HAKKINDA'),
               _kutu(
                 child: Column(
                   children: [
-                    _satir(Icons.info_outline, 'Uygulama', 'Depremin Nabzı 1.0'),
-                    const Divider(),
+                    _satir(
+                        Icons.info_outline, 'Uygulama', 'Depremin Nabzı 1.0'),
+                    const GlassDivider(),
                     _satir(Icons.public, 'Harita', 'OpenStreetMap'),
-                    const Divider(),
+                    const GlassDivider(),
                     ListTile(
                       leading: const Icon(Icons.replay_outlined),
                       title: const Text('Tanıtımı tekrar göster'),
@@ -278,7 +281,7 @@ class AyarlarSekmesi extends StatelessWidget {
                         );
                       },
                     ),
-                    const Divider(),
+                    const GlassDivider(),
                     ListTile(
                       leading: const Icon(Icons.link),
                       title: const Text('AFAD veri servisi'),
@@ -296,7 +299,6 @@ class AyarlarSekmesi extends StatelessWidget {
                   ],
                 ),
               ),
-
               const SizedBox(height: 20),
               const Text(
                 'Deprem verileri AFAD ve Boğaziçi Üniversitesi Kandilli '
@@ -332,13 +334,16 @@ class AyarlarSekmesi extends StatelessWidget {
         ),
       );
 
-  Widget _kutu({required Widget child}) => Container(
-        decoration: BoxDecoration(
-          color: Renkler.yuzey,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Renkler.kenarlik),
-        ),
+  /// Ayar bolumlerinin cam govdesi.
+  ///
+  /// iOS 26'da ayar gruplari cam bir "platter" uzerinde durur; satirlar
+  /// (ListTile, RadioListTile) opak kalir. Bu yuzden ic ogelere ayrica
+  /// cam vermiyoruz - cam ustune cam koymak efekti bozuyor.
+  Widget _kutu({required Widget child}) => GlassCard(
+        quality: GlassQuality.minimal,
+        padding: EdgeInsets.zero,
         clipBehavior: Clip.antiAlias,
+        shape: const LiquidRoundedSuperellipse(borderRadius: 20),
         child: child,
       );
 

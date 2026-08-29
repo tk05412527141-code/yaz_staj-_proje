@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
+import '../utils/cam_tema.dart';
 import '../utils/tema.dart';
 
 /// Bos liste, hata gibi durumlarda gosterilen ortak ekran.
@@ -71,15 +73,36 @@ class DurumGorunumu extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 24),
-            FilledButton.icon(
-              onPressed: onEylem,
-              icon: const Icon(Icons.refresh, size: 18),
-              label: Text(eylemYazisi),
-              style: FilledButton.styleFrom(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 22, vertical: 13),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+            // Ana eylem: prominent cam. Bos/hata ekraninda tek cikis
+            // yolu bu buton oldugu icin ekrandaki en kalin yuzey o.
+            GlassButton.custom(
+              onTap: onEylem,
+              label: eylemYazisi,
+              height: 50,
+              style: GlassButtonStyle.prominent,
+              settings: CamAyar.tonlu(ikonRengi ?? Renkler.vurgu),
+              useOwnLayer: true,
+              shape: const LiquidRoundedSuperellipse(borderRadius: 25),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 22),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.refresh,
+                      size: 18,
+                      color: ikonRengi ?? Renkler.vurgu,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      eylemYazisi,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: Renkler.metin,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),

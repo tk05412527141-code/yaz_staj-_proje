@@ -18,6 +18,22 @@ class Renkler {
 
   static const vurgu = Color(0xFFFF6B35); // turuncu - ana vurgu
   static const canli = Color(0xFF3FB950); // yesil - "canli" gostergesi
+
+  // --- Cam katmani icin yarisaydam tonlar ---
+  //
+  // Cam yuzeyler arkalarindaki seyi kirarak gorunur oluyor. Kartlar
+  // tamamen opak kalirsa ekranin yarisi cam, yarisi duz gorunur.
+  // Bu tonlar ayni renk kimligini korur ama arkadaki zemin
+  // gradyaninin bir miktar sizmasina izin verir.
+
+  /// Kart zemini - opak [yuzey] yerine kullanilir.
+  static const yuzeySaydam = Color(0x99151B23);
+
+  /// Kart uzeri oge zemini (rozet, kucuk kutu).
+  static const yuzeyUstSaydam = Color(0xA31D2530);
+
+  /// Cam yuzeylerin ust kenarindaki isik cizgisi.
+  static const camKenar = Color(0x33FFFFFF);
 }
 
 class Tema {
@@ -40,8 +56,10 @@ class Tema {
       colorScheme: semasi,
       scaffoldBackgroundColor: Renkler.zemin,
 
+      // Cam katmani devrede: ust cubuk kendi zeminini cizmiyor,
+      // arkasindaki zemin gradyanini kiriyor.
       appBarTheme: const AppBarTheme(
-        backgroundColor: Renkler.zemin,
+        backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         centerTitle: false,
@@ -54,13 +72,13 @@ class Tema {
       ),
 
       cardTheme: CardThemeData(
-        color: Renkler.yuzey,
+        color: Renkler.yuzeySaydam,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: Renkler.kenarlik),
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: Renkler.camKenar),
         ),
       ),
 
@@ -105,7 +123,7 @@ class Tema {
 
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: Renkler.yuzeyUst,
+        fillColor: Renkler.yuzeyUstSaydam,
         hintStyle: const TextStyle(color: Renkler.metinSolgun, fontSize: 15),
         prefixIconColor: Renkler.metinSolgun,
         contentPadding:
@@ -141,8 +159,10 @@ class Tema {
         space: 1,
       ),
 
+      // Alt sayfalar GlassModalSheet ile aciliyor; Material'in kendi
+      // zeminini cizmemesi icin seffaf birakildi.
       bottomSheetTheme: const BottomSheetThemeData(
-        backgroundColor: Renkler.yuzey,
+        backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import '../models/kayitli_konum.dart';
+import '../utils/cam_tema.dart';
 import '../utils/sehirler.dart';
 import '../utils/tema.dart';
 
@@ -97,16 +99,20 @@ class _KonumEkleEkraniState extends State<KonumEkleEkrani> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(_duzenlemeModu ? 'Konumu düzenle' : 'Yer ekle'),
-      ),
-      body: SafeArea(
+    return CamSayfa(
+      baslik: _duzenlemeModu ? 'Konumu düzenle' : 'Yer ekle',
+      govde: SafeArea(
+        top: false,
         child: Column(
           children: [
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                padding: EdgeInsets.fromLTRB(
+                  16,
+                  CamOlculer.ustBosluk(context) + 12,
+                  16,
+                  16,
+                ),
                 children: [
                   _bolumBasligi('AD'),
                   TextField(
@@ -119,33 +125,32 @@ class _KonumEkleEkraniState extends State<KonumEkleEkrani> {
                       prefixIcon: Icon(Icons.label_outline),
                     ),
                   ),
-
                   const SizedBox(height: 20),
                   _bolumBasligi('SİMGE'),
                   Wrap(
                     spacing: 8,
                     children: KonumSimgesi.tumu.keys.map((anahtar) {
                       final secili = _simge == anahtar;
-                      return ChoiceChip(
+                      return GlassChip(
                         selected: secili,
-                        onSelected: (_) => setState(() => _simge = anahtar),
-                        avatar: Icon(
-                          KonumSimgesi.ikon(anahtar),
-                          size: 17,
-                          color: secili ? Colors.white : Renkler.metinSolgun,
-                        ),
-                        label: Text(KonumSimgesi.adlar[anahtar] ?? anahtar),
+                        onTap: () => setState(() => _simge = anahtar),
+                        icon: Icon(KonumSimgesi.ikon(anahtar), size: 16),
+                        iconColor: secili ? Renkler.vurgu : Renkler.metinSolgun,
+                        label: KonumSimgesi.adlar[anahtar] ?? anahtar,
+                        selectedColor: Renkler.vurgu.withValues(alpha: 0.35),
+                        settings: CamAyar.kontrol,
+                        useOwnLayer: true,
                         labelStyle: TextStyle(
                           fontSize: 13,
-                          color: secili ? Colors.white : Renkler.metin,
+                          fontWeight:
+                              secili ? FontWeight.w700 : FontWeight.w500,
+                          color: secili ? Renkler.metin : Renkler.metinSolgun,
                         ),
                       );
                     }).toList(),
                   ),
-
                   const SizedBox(height: 20),
                   _bolumBasligi('KONUM'),
-
                   if (!_haritaModu) ...[
                     TextField(
                       controller: _aramaKontrolcu,
@@ -169,15 +174,26 @@ class _KonumEkleEkraniState extends State<KonumEkleEkrani> {
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
               child: SizedBox(
                 width: double.infinity,
-                child: FilledButton(
-                  onPressed: _kaydedilebilir ? _kaydet : null,
-                  style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 15),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
+                child: GlassButton.custom(
+                  onTap: _kaydedilebilir ? _kaydet : () {},
+                  enabled: _kaydedilebilir,
+                  label: _duzenlemeModu ? 'Değişiklikleri kaydet' : 'Kaydet',
+                  height: 52,
+                  style: GlassButtonStyle.prominent,
+                  settings: _kaydedilebilir
+                      ? CamAyar.tonlu(Renkler.vurgu, yogunluk: 0.20)
+                      : CamAyar.panel,
+                  useOwnLayer: true,
+                  shape: const LiquidRoundedSuperellipse(borderRadius: 18),
+                  child: Text(
+                    _duzenlemeModu ? 'Değişiklikleri kaydet' : 'Kaydet',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color:
+                          _kaydedilebilir ? Renkler.metin : Renkler.metinSolgun,
                     ),
                   ),
-                  child: Text(_duzenlemeModu ? 'Değişiklikleri kaydet' : 'Kaydet'),
                 ),
               ),
             ),
@@ -215,17 +231,15 @@ class _KonumEkleEkraniState extends State<KonumEkleEkrani> {
       );
     }
 
-    return Container(
-      decoration: BoxDecoration(
-        color: Renkler.yuzey,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Renkler.kenarlik),
-      ),
+    return GlassCard(
+      quality: GlassQuality.minimal,
+      padding: EdgeInsets.zero,
       clipBehavior: Clip.antiAlias,
+      shape: const LiquidRoundedSuperellipse(borderRadius: 18),
       child: Column(
         children: [
           for (var i = 0; i < sonuclar.length && i < 40; i++) ...[
-            if (i > 0) const Divider(),
+            if (i > 0) const GlassDivider(),
             ListTile(
               dense: true,
               leading: Text(

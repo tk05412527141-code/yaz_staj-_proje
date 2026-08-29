@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../utils/cam_tema.dart';
 import '../utils/tema.dart';
 
 /// Uygulama acilirken gosterilen animasyonlu giris ekrani.
@@ -110,77 +111,82 @@ class _AcilisEkraniState extends State<AcilisEkrani>
 
   @override
   Widget build(BuildContext context) {
+    // Acilis ekrani da ayni zemini kullaniyor: uygulama acilirken
+    // arka plan degismedigi icin listeye gecis sicramiyor.
     return Scaffold(
       backgroundColor: Renkler.zemin,
-      body: Semantics(
-        label: 'Depremin Nabzı açılıyor',
-        child: ExcludeSemantics(
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                SizedBox(
-                  width: 260,
-                  height: 260,
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      // Logodan disari yayilan sismik halkalar
-                      AnimatedBuilder(
-                        animation: _halkalar,
-                        builder: (context, _) => CustomPaint(
-                          size: const Size(260, 260),
-                          painter: _HalkaBoyayici(ilerleme: _halkalar.value),
-                        ),
-                      ),
-
-                      // Logo
-                      FadeTransition(
-                        opacity: _logoSaydam,
-                        child: ScaleTransition(
-                          scale: _logoOlcek,
-                          child: _logo(),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 34),
-
-                // Uygulama adi ve alt yazi
-                FadeTransition(
-                  opacity: _yaziSaydam,
-                  child: SlideTransition(
-                    position: _yaziKayma,
-                    child: const Column(
+      body: Stack(children: [
+        const Positioned.fill(child: CamZemin(yogunluk: 0.7)),
+        Semantics(
+          label: 'Depremin Nabzı açılıyor',
+          child: ExcludeSemantics(
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    width: 260,
+                    height: 260,
+                    child: Stack(
+                      alignment: Alignment.center,
                       children: [
-                        Text(
-                          'Depremin Nabzı',
-                          style: TextStyle(
-                            fontSize: 27,
-                            fontWeight: FontWeight.w800,
-                            color: Renkler.metin,
-                            letterSpacing: -0.6,
+                        // Logodan disari yayilan sismik halkalar
+                        AnimatedBuilder(
+                          animation: _halkalar,
+                          builder: (context, _) => CustomPaint(
+                            size: const Size(260, 260),
+                            painter: _HalkaBoyayici(ilerleme: _halkalar.value),
                           ),
                         ),
-                        SizedBox(height: 7),
-                        Text(
-                          'Yerlerinizde ne kadar hissedilir?',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Renkler.metinSolgun,
+
+                        // Logo
+                        FadeTransition(
+                          opacity: _logoSaydam,
+                          child: ScaleTransition(
+                            scale: _logoOlcek,
+                            child: _logo(),
                           ),
                         ),
                       ],
                     ),
                   ),
-                ),
-              ],
+
+                  const SizedBox(height: 34),
+
+                  // Uygulama adi ve alt yazi
+                  FadeTransition(
+                    opacity: _yaziSaydam,
+                    child: SlideTransition(
+                      position: _yaziKayma,
+                      child: const Column(
+                        children: [
+                          Text(
+                            'Depremin Nabzı',
+                            style: TextStyle(
+                              fontSize: 27,
+                              fontWeight: FontWeight.w800,
+                              color: Renkler.metin,
+                              letterSpacing: -0.6,
+                            ),
+                          ),
+                          SizedBox(height: 7),
+                          Text(
+                            'Yerlerinizde ne kadar hissedilir?',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Renkler.metinSolgun,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
-      ),
+      ]),
     );
   }
 

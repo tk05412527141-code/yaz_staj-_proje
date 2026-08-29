@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import '../models/acil_kisi.dart';
 import '../services/acil_durum_servisi.dart';
 import '../services/konum_servisi.dart';
 import '../state/deprem_deposu.dart';
+import '../utils/cam_tema.dart';
 import '../utils/tema.dart';
 import 'acil_kisi_ekle_ekrani.dart';
 
@@ -63,51 +65,52 @@ class _AcilDurumEkraniState extends State<AcilDurumEkrani>
       builder: (context, _) {
         final kisiler = widget.depo.acilKisiler;
 
-        return Scaffold(
-          body: SafeArea(
-            bottom: false,
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(20, 14, 20, 28),
-              children: [
-                const Text(
-                  'Acil Durum',
-                  style: TextStyle(
-                    fontSize: 25,
-                    fontWeight: FontWeight.w800,
-                    color: Renkler.metin,
-                    letterSpacing: -0.6,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  kisiler.isEmpty
-                      ? 'Önce yakınlarını ekle. Butona bastığında konumun '
-                          'onlara gidecek mesaja hazır olarak eklenir.'
-                      : 'Butonu basılı tut: konumunu içeren mesaj '
-                          '${kisiler.length} kişi için hazırlanır.',
-                  style: const TextStyle(
-                    fontSize: 13.5,
-                    height: 1.5,
-                    color: Renkler.metinSolgun,
-                  ),
-                ),
-
-                const SizedBox(height: 26),
-                _acilButon(kisiler),
-                const SizedBox(height: 18),
-
-                _kisitUyarisi(),
-                const SizedBox(height: 20),
-
-                _ikincilEylemler(kisiler),
-                const SizedBox(height: 24),
-
-                _kisilerBolumu(kisiler),
-
-                const SizedBox(height: 22),
-                _konumBilgisi(),
-              ],
+        // Bu sekme AnaKabuk'un GlassScaffold + CamGovde'si icinde
+        // yasiyor; Material baglami ve zemin oradan geliyor.
+        return SafeArea(
+          bottom: false,
+          child: ListView(
+            // Alt bosluk: yuzen cam sekme cubugu icerigi kapatmasin.
+            padding: EdgeInsets.fromLTRB(
+              20,
+              14,
+              20,
+              CamOlculer.altBosluk(context) + 8,
             ),
+            children: [
+              const Text(
+                'Acil Durum',
+                style: TextStyle(
+                  fontSize: 25,
+                  fontWeight: FontWeight.w800,
+                  color: Renkler.metin,
+                  letterSpacing: -0.6,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                kisiler.isEmpty
+                    ? 'Önce yakınlarını ekle. Butona bastığında konumun '
+                        'onlara gidecek mesaja hazır olarak eklenir.'
+                    : 'Butonu basılı tut: konumunu içeren mesaj '
+                        '${kisiler.length} kişi için hazırlanır.',
+                style: const TextStyle(
+                  fontSize: 13.5,
+                  height: 1.5,
+                  color: Renkler.metinSolgun,
+                ),
+              ),
+              const SizedBox(height: 26),
+              _acilButon(kisiler),
+              const SizedBox(height: 18),
+              _kisitUyarisi(),
+              const SizedBox(height: 20),
+              _ikincilEylemler(kisiler),
+              const SizedBox(height: 24),
+              _kisilerBolumu(kisiler),
+              const SizedBox(height: 22),
+              _konumBilgisi(),
+            ],
           ),
         );
       },
@@ -144,30 +147,35 @@ class _AcilDurumEkraniState extends State<AcilDurumEkrani>
                     alignment: Alignment.center,
                     children: [
                       // Basili tutma ilerleme cemberi
-                      SizedBox(
-                        width: 210,
-                        height: 210,
-                        child: CircularProgressIndicator(
-                          value: ilerleme,
-                          strokeWidth: 6,
-                          backgroundColor: Renkler.kenarlik,
-                          valueColor: const AlwaysStoppedAnimation(
-                            Color(0xFFF85149),
-                          ),
-                        ),
+                      GlassProgressIndicator.circular(
+                        value: ilerleme,
+                        size: 210,
+                        strokeWidth: 6,
+                        backgroundColor: Renkler.kenarlik,
+                        color: const Color(0xFFF85149),
                       ),
 
-                      // Buton govdesi
-                      Container(
+                      // Buton govdesi: basili tuttukca cam kizariyor ve
+                      // kalinlasiyor. Ilerleme hem cemberden hem camin
+                      // renginden okunuyor - panik aninda tek gostergeye
+                      // guvenmemek gerekiyor.
+                      GlassCard(
                         width: 176,
                         height: 176,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: etkin
-                              ? const Color(0xFFF85149)
-                                  .withValues(alpha: 0.15 + ilerleme * 0.6)
-                              : Renkler.yuzeyUst,
-                          border: Border.all(
+                        padding: EdgeInsets.zero,
+                        quality: GlassQuality.standard,
+                        settings: etkin
+                            ? CamAyar.vurgulu.copyWith(
+                                glassColor: const Color(0xFFF85149)
+                                    .withValues(alpha: 0.15 + ilerleme * 0.55),
+                                thickness: 30 + ilerleme * 14,
+                              )
+                            : CamAyar.panel,
+                        // Kendi katmani: yoksa buton basili tutulurken
+                        // kizaran cam rengi yok sayilir.
+                        useOwnLayer: true,
+                        shape: LiquidOval(
+                          side: BorderSide(
                             color: etkin
                                 ? const Color(0xFFF85149)
                                 : Renkler.kenarlik,
@@ -182,9 +190,7 @@ class _AcilDurumEkraniState extends State<AcilDurumEkrani>
                                   ? Icons.more_horiz
                                   : Icons.sos_rounded,
                               size: 46,
-                              color: etkin
-                                  ? Colors.white
-                                  : Renkler.metinSolgun,
+                              color: etkin ? Colors.white : Renkler.metinSolgun,
                             ),
                             const SizedBox(height: 8),
                             Padding(
@@ -193,9 +199,7 @@ class _AcilDurumEkraniState extends State<AcilDurumEkrani>
                               child: Text(
                                 _hazirlaniyor
                                     ? 'Konum alınıyor…'
-                                    : (etkin
-                                        ? 'BASILI TUT'
-                                        : 'KİŞİ EKLE'),
+                                    : (etkin ? 'BASILI TUT' : 'KİŞİ EKLE'),
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   fontSize: 13,
@@ -237,12 +241,10 @@ class _AcilDurumEkraniState extends State<AcilDurumEkrani>
   // ------------------------------------------------------------------
 
   Widget _kisitUyarisi() {
-    return Container(
+    return GlassCard(
+      quality: GlassQuality.minimal,
       padding: const EdgeInsets.all(13),
-      decoration: BoxDecoration(
-        color: Renkler.yuzeyUst,
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: const LiquidRoundedSuperellipse(borderRadius: 16),
       child: const Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -304,45 +306,45 @@ class _AcilDurumEkraniState extends State<AcilDurumEkrani>
   }) {
     final etkin = onTap != null;
 
-    return Material(
-      color: Renkler.yuzey,
-      borderRadius: BorderRadius.circular(14),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 12),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: etkin
-                  ? renk.withValues(alpha: 0.4)
-                  : Renkler.kenarlik,
+    // "İyiyim" ve "112": her biri kendi renginde tonlanmis cam.
+    // Devre disiyken cam notrlesip soluyor, dokunulamayacagi belli.
+    return GlassButton.custom(
+      onTap: onTap ?? () {},
+      enabled: etkin,
+      label: '$baslik, $altYazi',
+      settings: etkin ? CamAyar.tonlu(renk, yogunluk: 0.16) : CamAyar.panel,
+      useOwnLayer: true,
+      shape: LiquidRoundedSuperellipse(
+        borderRadius: 18,
+        side: BorderSide(
+          color: etkin ? renk.withValues(alpha: 0.4) : Renkler.kenarlik,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 12),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(ikon, size: 24, color: etkin ? renk : Renkler.metinSolgun),
+            const SizedBox(height: 8),
+            Text(
+              baslik,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: etkin ? Renkler.metin : Renkler.metinSolgun,
+              ),
             ),
-          ),
-          child: Column(
-            children: [
-              Icon(ikon, size: 24, color: etkin ? renk : Renkler.metinSolgun),
-              const SizedBox(height: 8),
-              Text(
-                baslik,
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: etkin ? Renkler.metin : Renkler.metinSolgun,
-                ),
+            const SizedBox(height: 2),
+            Text(
+              altYazi,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 11.5,
+                color: Renkler.metinSolgun,
               ),
-              const SizedBox(height: 2),
-              Text(
-                altYazi,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 11.5,
-                  color: Renkler.metinSolgun,
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -377,20 +379,16 @@ class _AcilDurumEkraniState extends State<AcilDurumEkrani>
           ],
         ),
         const SizedBox(height: 4),
-
         if (kisiler.isEmpty)
-          Container(
+          GlassCard(
             width: double.infinity,
+            quality: GlassQuality.minimal,
             padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Renkler.yuzey,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: Renkler.kenarlik),
-            ),
+            shape: const LiquidRoundedSuperellipse(borderRadius: 18),
             child: const Column(
               children: [
-                Icon(Icons.person_add_alt, size: 32,
-                    color: Renkler.metinSolgun),
+                Icon(Icons.person_add_alt,
+                    size: 32, color: Renkler.metinSolgun),
                 SizedBox(height: 12),
                 Text(
                   'Henüz kişi eklemedin',
@@ -424,13 +422,11 @@ class _AcilDurumEkraniState extends State<AcilDurumEkrani>
   }
 
   Widget _kisiKarti(AcilKisi kisi) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Renkler.yuzey,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Renkler.kenarlik),
-      ),
+    return GlassCard(
+      quality: GlassQuality.minimal,
+      padding: EdgeInsets.zero,
       clipBehavior: Clip.antiAlias,
+      shape: const LiquidRoundedSuperellipse(borderRadius: 18),
       child: Column(
         children: [
           ListTile(
@@ -481,7 +477,7 @@ class _AcilDurumEkraniState extends State<AcilDurumEkrani>
               ],
             ),
           ),
-          const Divider(),
+          const GlassDivider(),
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 0, 12, 6),
             child: Row(
@@ -521,20 +517,17 @@ class _AcilDurumEkraniState extends State<AcilDurumEkrani>
   Widget _konumBilgisi() {
     final k = _sonKonum;
 
-    return Container(
+    return GlassCard(
+      quality: GlassQuality.minimal,
       padding: const EdgeInsets.all(13),
-      decoration: BoxDecoration(
-        color: Renkler.yuzey,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Renkler.kenarlik),
-      ),
+      shape: const LiquidRoundedSuperellipse(borderRadius: 18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.my_location, size: 16,
-                  color: Renkler.metinSolgun),
+              const Icon(Icons.my_location,
+                  size: 16, color: Renkler.metinSolgun),
               const SizedBox(width: 9),
               Expanded(
                 child: Text(
@@ -586,9 +579,8 @@ class _AcilDurumEkraniState extends State<AcilDurumEkrani>
     setState(() => _hazirlaniyor = true);
 
     // Kayitli "Yerlerim"in ilki yedek olarak kullanilir
-    final yedek = widget.depo.konumlar.isNotEmpty
-        ? widget.depo.konumlar.first
-        : null;
+    final yedek =
+        widget.depo.konumlar.isNotEmpty ? widget.depo.konumlar.first : null;
 
     // Izin yoksa iste (kalici reddedildiyse istem gosterilmez, yedege duser)
     if (!await KonumServisi.izinVarMi()) {
@@ -751,8 +743,8 @@ class _AcilDurumEkraniState extends State<AcilDurumEkrani>
           ),
           TextButton(
             onPressed: () => Navigator.of(d).pop(true),
-            child: const Text('Sil',
-                style: TextStyle(color: Color(0xFFF85149))),
+            child:
+                const Text('Sil', style: TextStyle(color: Color(0xFFF85149))),
           ),
         ],
       ),

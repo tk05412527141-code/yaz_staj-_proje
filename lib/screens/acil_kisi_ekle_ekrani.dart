@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import '../models/acil_kisi.dart';
+import '../utils/cam_tema.dart';
 import '../utils/tema.dart';
 
 /// Acil durum kisisi ekleme/duzenleme ekrani.
@@ -29,8 +31,15 @@ class _AcilKisiEkleEkraniState extends State<AcilKisiEkleEkrani> {
   bool get _duzenlemeModu => widget.duzenlenen != null;
 
   /// Hazir iliski etiketleri - yazmak yerine dokunmak hizli
-  static const _iliskiler = ['Anne', 'Baba', 'Eş', 'Kardeş', 'Çocuk',
-    'Arkadaş', 'Komşu'];
+  static const _iliskiler = [
+    'Anne',
+    'Baba',
+    'Eş',
+    'Kardeş',
+    'Çocuk',
+    'Arkadaş',
+    'Komşu'
+  ];
 
   @override
   void initState() {
@@ -80,16 +89,21 @@ class _AcilKisiEkleEkraniState extends State<AcilKisiEkleEkrani> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(_duzenlemeModu ? 'Kişiyi düzenle' : 'Acil kişi ekle'),
-      ),
-      body: SafeArea(
+    return CamSayfa(
+      baslik: _duzenlemeModu ? 'Kişiyi düzenle' : 'Acil kişi ekle',
+      vurguRengi: const Color(0xFFF85149),
+      govde: SafeArea(
+        top: false,
         child: Column(
           children: [
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(20, 14, 20, 16),
+                padding: EdgeInsets.fromLTRB(
+                  20,
+                  CamOlculer.ustBosluk(context) + 14,
+                  20,
+                  16,
+                ),
                 children: [
                   _bolumBasligi('AD'),
                   TextField(
@@ -103,7 +117,6 @@ class _AcilKisiEkleEkraniState extends State<AcilKisiEkleEkrani> {
                       prefixIcon: Icon(Icons.person_outline),
                     ),
                   ),
-
                   const SizedBox(height: 20),
                   _bolumBasligi('TELEFON'),
                   TextField(
@@ -127,7 +140,6 @@ class _AcilKisiEkleEkraniState extends State<AcilKisiEkleEkrani> {
                       color: Renkler.metinSolgun,
                     ),
                   ),
-
                   const SizedBox(height: 20),
                   _bolumBasligi('YAKINLIK (isteğe bağlı)'),
                   TextField(
@@ -146,35 +158,37 @@ class _AcilKisiEkleEkraniState extends State<AcilKisiEkleEkrani> {
                     runSpacing: 8,
                     children: _iliskiler.map((i) {
                       final secili = _iliskiKontrolcu.text.trim() == i;
-                      return ChoiceChip(
-                        label: Text(i),
+                      return GlassChip(
+                        label: i,
                         selected: secili,
-                        onSelected: (_) {
+                        onTap: () {
                           HapticFeedback.selectionClick();
                           setState(() {
                             _iliskiKontrolcu.text = secili ? '' : i;
                           });
                         },
+                        selectedColor: Renkler.vurgu.withValues(alpha: 0.35),
+                        settings: CamAyar.kontrol,
+                        useOwnLayer: true,
                         labelStyle: TextStyle(
                           fontSize: 13,
-                          color: secili ? Colors.white : Renkler.metin,
+                          fontWeight:
+                              secili ? FontWeight.w700 : FontWeight.w500,
+                          color: secili ? Renkler.metin : Renkler.metinSolgun,
                         ),
                       );
                     }).toList(),
                   ),
-
                   const SizedBox(height: 24),
-                  Container(
+                  GlassCard(
+                    quality: GlassQuality.minimal,
                     padding: const EdgeInsets.all(13),
-                    decoration: BoxDecoration(
-                      color: Renkler.yuzeyUst,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                    shape: const LiquidRoundedSuperellipse(borderRadius: 16),
                     child: const Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(Icons.lock_outline, size: 17,
-                            color: Renkler.metinSolgun),
+                        Icon(Icons.lock_outline,
+                            size: 17, color: Renkler.metinSolgun),
                         SizedBox(width: 10),
                         Expanded(
                           child: Text(
@@ -194,21 +208,29 @@ class _AcilKisiEkleEkraniState extends State<AcilKisiEkleEkrani> {
                 ],
               ),
             ),
-
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
               child: SizedBox(
                 width: double.infinity,
-                child: FilledButton(
-                  onPressed: _kaydedilebilir ? _kaydet : null,
-                  style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 15),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
+                child: GlassButton.custom(
+                  onTap: _kaydedilebilir ? _kaydet : () {},
+                  enabled: _kaydedilebilir,
+                  label: _duzenlemeModu ? 'Değişiklikleri kaydet' : 'Kaydet',
+                  height: 52,
+                  style: GlassButtonStyle.prominent,
+                  settings: _kaydedilebilir
+                      ? CamAyar.tonlu(Renkler.vurgu, yogunluk: 0.20)
+                      : CamAyar.panel,
+                  useOwnLayer: true,
+                  shape: const LiquidRoundedSuperellipse(borderRadius: 18),
                   child: Text(
                     _duzenlemeModu ? 'Değişiklikleri kaydet' : 'Kaydet',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color:
+                          _kaydedilebilir ? Renkler.metin : Renkler.metinSolgun,
+                    ),
                   ),
                 ),
               ),

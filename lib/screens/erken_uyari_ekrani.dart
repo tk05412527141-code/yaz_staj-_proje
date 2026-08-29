@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
+import '../utils/cam_tema.dart';
 import '../utils/tema.dart';
 
 /// Erken uyari hakkinda durust bilgilendirme.
@@ -21,17 +23,22 @@ class ErkenUyariEkrani extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Erken uyarı')),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+    return CamSayfa(
+      baslik: 'Erken uyarı',
+      govde: ListView(
+        // Ust cam cubuk icerigin uzerinde yuzuyor: ilk kart onun
+        // altindan baslasin diye cubuk kadar bosluk biraktik.
+        padding: EdgeInsets.fromLTRB(
+          20,
+          CamOlculer.ustBosluk(context) + 12,
+          20,
+          32,
+        ),
         children: [
           _uyariKutusu(),
           const SizedBox(height: 24),
-
           _baslik('Üç farklı şey karıştırılıyor'),
           const SizedBox(height: 14),
-
           _kavramKarti(
             ikon: Icons.block,
             renk: const Color(0xFFF85149),
@@ -44,7 +51,6 @@ class ErkenUyariEkrani extends StatelessWidget {
                 'Bunu vaat eden bir uygulama görürsen şüpheyle yaklaş.',
           ),
           const SizedBox(height: 12),
-
           _kavramKarti(
             ikon: Icons.bolt,
             renk: const Color(0xFFE3B341),
@@ -60,7 +66,6 @@ class ErkenUyariEkrani extends StatelessWidget {
                 'yayınlandıktan sonra geliyor — erken uyarı için çok geç.',
           ),
           const SizedBox(height: 12),
-
           _kavramKarti(
             ikon: Icons.check_circle_outline,
             renk: Renkler.canli,
@@ -72,7 +77,6 @@ class ErkenUyariEkrani extends StatelessWidget {
                 'Sarsıntı anında saniyeler kazandırmıyor; ama o anı hazırlıklı '
                 'karşılamana yardım ediyor.',
           ),
-
           const SizedBox(height: 28),
           _baslik('Erken uyarıyı nereden alabilirsin?'),
           const SizedBox(height: 6),
@@ -86,7 +90,6 @@ class ErkenUyariEkrani extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 14),
-
           _yolKarti(
             context,
             ikon: Icons.android,
@@ -97,7 +100,6 @@ class ErkenUyariEkrani extends StatelessWidget {
                 'sarsıntıyı algılar ve uyarı gönderir.',
           ),
           const SizedBox(height: 10),
-
           _yolKarti(
             context,
             ikon: Icons.phone_iphone,
@@ -109,7 +111,6 @@ class ErkenUyariEkrani extends StatelessWidget {
                 'uyarılarını açık tutmak önemli.',
           ),
           const SizedBox(height: 10),
-
           _yolKarti(
             context,
             ikon: Icons.verified_outlined,
@@ -119,14 +120,11 @@ class ErkenUyariEkrani extends StatelessWidget {
             not: 'Resmî kurum uygulaması. Acil çağrı ve "iyiyim" bildirimi '
                 'gibi ek özellikleri var.',
           ),
-
           const SizedBox(height: 24),
-          Container(
+          GlassCard(
+            quality: GlassQuality.minimal,
             padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: Renkler.yuzeyUst,
-              borderRadius: BorderRadius.circular(14),
-            ),
+            shape: const LiquidRoundedSuperellipse(borderRadius: 16),
             child: const Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -155,20 +153,21 @@ class ErkenUyariEkrani extends StatelessWidget {
   // ------------------------------------------------------------------
 
   Widget _uyariKutusu() {
-    return Container(
+    return GlassCard(
+      quality: GlassQuality.standard,
+      settings: CamAyar.tonlu(Renkler.vurgu, yogunluk: 0.16),
+      useOwnLayer: true,
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Renkler.vurgu.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Renkler.vurgu.withValues(alpha: 0.4)),
+      shape: LiquidRoundedSuperellipse(
+        borderRadius: 20,
+        side: BorderSide(color: Renkler.vurgu.withValues(alpha: 0.4)),
       ),
       child: const Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.warning_amber_rounded,
-                  color: Renkler.vurgu, size: 22),
+              Icon(Icons.warning_amber_rounded, color: Renkler.vurgu, size: 22),
               SizedBox(width: 10),
               Expanded(
                 child: Text(
@@ -214,13 +213,10 @@ class ErkenUyariEkrani extends StatelessWidget {
     required String durum,
     required String aciklama,
   }) {
-    return Container(
+    return GlassCard(
+      quality: GlassQuality.minimal,
       padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        color: Renkler.yuzey,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Renkler.kenarlik),
-      ),
+      shape: const LiquidRoundedSuperellipse(borderRadius: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -283,13 +279,10 @@ class ErkenUyariEkrani extends StatelessWidget {
     required String adimlar,
     required String not,
   }) {
-    return Container(
+    return GlassCard(
+      quality: GlassQuality.minimal,
       padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        color: Renkler.yuzey,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Renkler.kenarlik),
-      ),
+      shape: const LiquidRoundedSuperellipse(borderRadius: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -331,7 +324,7 @@ class ErkenUyariEkrani extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.all(11),
             decoration: BoxDecoration(
-              color: Renkler.yuzeyUst,
+              color: Renkler.yuzeyUstSaydam,
               borderRadius: BorderRadius.circular(10),
             ),
             child: Text(

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import '../models/hazirlik_maddesi.dart';
 import '../services/bildirim_servisi.dart';
 import '../services/hatirlatma_planlayici.dart';
 import '../state/deprem_deposu.dart';
+import '../utils/cam_tema.dart';
 import '../utils/tema.dart';
 import 'erken_uyari_ekrani.dart';
 
@@ -69,31 +71,32 @@ class _HazirlikEkraniState extends State<HazirlikEkrani> {
       builder: (context, _) {
         final durum = widget.depo.hazirlik;
 
-        return Scaffold(
-          appBar: AppBar(title: const Text('Hazırlık')),
-          body: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
+        return CamSayfa(
+          baslik: 'Hazırlık',
+          vurguRengi: Renkler.canli,
+          govde: ListView(
+            padding: EdgeInsets.fromLTRB(
+              16,
+              CamOlculer.ustBosluk(context) + 8,
+              16,
+              28,
+            ),
             children: [
               _ilerlemeKarti(durum),
               const SizedBox(height: 16),
-
               if (_izinKontrolEdildi && !_izinVar) ...[
                 _izinKarti(),
                 const SizedBox(height: 16),
               ],
-
               _bolumBasligi('KONTROL LİSTESİ'),
               for (final madde in HazirlikListesi.tumu) ...[
                 _maddeKarti(madde, durum),
                 const SizedBox(height: 10),
               ],
-
               const SizedBox(height: 12),
               _hatirlatmaSaatiKarti(durum),
-
               const SizedBox(height: 16),
               _erkenUyariBaglantisi(),
-
               const SizedBox(height: 18),
               const Text(
                 'İçerik AFAD ve Kızılay\'ın yaygın hazırlık önerilerine '
@@ -122,12 +125,14 @@ class _HazirlikEkraniState extends State<HazirlikEkrani> {
         ? Renkler.canli
         : (oran >= 0.5 ? const Color(0xFFE3B341) : Renkler.vurgu);
 
-    return Container(
+    return GlassCard(
+      quality: GlassQuality.standard,
+      settings: CamAyar.tonlu(renk, yogunluk: 0.13),
+      useOwnLayer: true,
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Renkler.yuzey,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: renk.withValues(alpha: 0.35)),
+      shape: LiquidRoundedSuperellipse(
+        borderRadius: 20,
+        side: BorderSide(color: renk.withValues(alpha: 0.35)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -184,12 +189,14 @@ class _HazirlikEkraniState extends State<HazirlikEkrani> {
   }
 
   Widget _izinKarti() {
-    return Container(
+    return GlassCard(
+      quality: GlassQuality.minimal,
+      settings: CamAyar.tonlu(Renkler.vurgu, yogunluk: 0.16),
+      useOwnLayer: true,
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Renkler.vurgu.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Renkler.vurgu.withValues(alpha: 0.4)),
+      shape: LiquidRoundedSuperellipse(
+        borderRadius: 18,
+        side: BorderSide(color: Renkler.vurgu.withValues(alpha: 0.4)),
       ),
       child: Row(
         children: [
@@ -207,13 +214,25 @@ class _HazirlikEkraniState extends State<HazirlikEkrani> {
             ),
           ),
           const SizedBox(width: 8),
-          FilledButton(
-            onPressed: _izinIste,
-            style: FilledButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-              minimumSize: const Size(0, 40),
+          GlassButton.custom(
+            onTap: _izinIste,
+            label: 'İzin ver',
+            height: 42,
+            style: GlassButtonStyle.prominent,
+            settings: CamAyar.tonlu(Renkler.vurgu, yogunluk: 0.22),
+            useOwnLayer: true,
+            shape: const LiquidRoundedSuperellipse(borderRadius: 21),
+            child: const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16),
+              child: Text(
+                'İzin ver',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: Renkler.metin,
+                ),
+              ),
             ),
-            child: const Text('İzin ver'),
           ),
         ],
       ),
@@ -232,13 +251,11 @@ class _HazirlikEkraniState extends State<HazirlikEkrani> {
         ? const Color(0xFFE3B341)
         : (tamamlandi ? Renkler.canli : Renkler.metinSolgun);
 
-    return Container(
-      decoration: BoxDecoration(
-        color: Renkler.yuzey,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Renkler.kenarlik),
-      ),
+    return GlassCard(
+      quality: GlassQuality.minimal,
+      padding: EdgeInsets.zero,
       clipBehavior: Clip.antiAlias,
+      shape: const LiquidRoundedSuperellipse(borderRadius: 20),
       child: Column(
         children: [
           Semantics(
@@ -341,7 +358,7 @@ class _HazirlikEkraniState extends State<HazirlikEkrani> {
             ),
           ),
 
-          const Divider(),
+          const GlassDivider(),
 
           // Hatirlatma anahtari
           Padding(
@@ -362,9 +379,12 @@ class _HazirlikEkraniState extends State<HazirlikEkrani> {
                 // Renk temadan geliyor (colorScheme.primary). activeColor /
                 // activeThumbColor Flutter surumleri arasinda degisti,
                 // parametre vermeyerek surum bagimliligindan kaciniyoruz.
-                Switch(
+                GlassSwitch(
                   value: hatirlatmaAcik,
                   onChanged: (acik) => _hatirlatmaDegistir(madde, acik),
+                  activeColor: Renkler.vurgu,
+                  settings: CamAyar.kontrol,
+                  useOwnLayer: true,
                 ),
               ],
             ),
@@ -375,13 +395,11 @@ class _HazirlikEkraniState extends State<HazirlikEkrani> {
   }
 
   Widget _hatirlatmaSaatiKarti(HazirlikDurumu durum) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Renkler.yuzey,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Renkler.kenarlik),
-      ),
+    return GlassCard(
+      quality: GlassQuality.minimal,
+      padding: EdgeInsets.zero,
       clipBehavior: Clip.antiAlias,
+      shape: const LiquidRoundedSuperellipse(borderRadius: 20),
       child: Column(
         children: [
           ListTile(
@@ -401,7 +419,7 @@ class _HazirlikEkraniState extends State<HazirlikEkrani> {
             ),
             onTap: () => _saatSec(durum),
           ),
-          const Divider(),
+          const GlassDivider(),
           ListTile(
             leading: const Icon(Icons.notifications_active_outlined),
             title: const Text('Test bildirimi gönder'),
@@ -417,13 +435,11 @@ class _HazirlikEkraniState extends State<HazirlikEkrani> {
   }
 
   Widget _erkenUyariBaglantisi() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Renkler.yuzey,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Renkler.kenarlik),
-      ),
+    return GlassCard(
+      quality: GlassQuality.minimal,
+      padding: EdgeInsets.zero,
       clipBehavior: Clip.antiAlias,
+      shape: const LiquidRoundedSuperellipse(borderRadius: 20),
       child: ListTile(
         leading: Container(
           width: 40,
@@ -432,8 +448,7 @@ class _HazirlikEkraniState extends State<HazirlikEkrani> {
             color: Renkler.vurgu.withValues(alpha: 0.14),
             borderRadius: BorderRadius.circular(11),
           ),
-          child: const Icon(Icons.crisis_alert,
-              size: 20, color: Renkler.vurgu),
+          child: const Icon(Icons.crisis_alert, size: 20, color: Renkler.vurgu),
         ),
         title: const Text(
           'Erken uyarı nasıl alınır?',
@@ -510,8 +525,7 @@ class _HazirlikEkraniState extends State<HazirlikEkrani> {
       helpText: 'Hatırlatma saati',
       builder: (context, child) => MediaQuery(
         // 24 saat formati - Turkiye kullanimi
-        data: MediaQuery.of(context)
-            .copyWith(alwaysUse24HourFormat: true),
+        data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
         child: child!,
       ),
     );

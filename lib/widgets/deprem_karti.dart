@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import '../models/deprem.dart';
 import '../models/kayitli_konum.dart';
@@ -71,21 +72,25 @@ class DepremKarti extends StatelessWidget {
       child: ExcludeSemantics(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-          child: Material(
-            color: Renkler.yuzey,
-            borderRadius: BorderRadius.circular(16),
+          // GlassQuality.minimal: liste kaydirilirken her kart icin
+          // shader calistirmaz (BackdropFilter + doygunluk matrisi).
+          // 50+ kartlik bir listede premium cam kullanmak kareleri
+          // dusururdu; minimal ayni buzlu cam gorunumunu bedava verir.
+          child: GlassCard(
+            quality: GlassQuality.minimal,
+            padding: EdgeInsets.zero,
             clipBehavior: Clip.antiAlias,
-            child: InkWell(
-              onTap: onTap,
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Renkler.kenarlik),
-                ),
+            shape: const LiquidRoundedSuperellipse(borderRadius: 18),
+            child: Material(
+              type: MaterialType.transparency,
+              child: InkWell(
+                onTap: onTap,
                 child: IntrinsicHeight(
                   child: Row(
                     children: [
-                      // Sol kenardaki renkli serit - listeyi hizli taramayi saglar
+                      // Sol kenardaki renkli serit - listeyi hizli taramayi
+                      // saglar. Cam uzerinde tam doygun kaliyor ki buyukluk
+                      // sinifi bir bakista okunabilsin.
                       Container(width: 4, color: renk),
 
                       Expanded(

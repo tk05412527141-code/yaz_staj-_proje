@@ -1,22 +1,39 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import 'screens/ana_kabuk.dart';
+import 'utils/cam_tema.dart';
 import 'utils/tema.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Cam yuzeyler fragment shader ile ciziliyor. initialize() bu
+  // shaderlari runApp'ten once derliyor: ilk karedeki beyaz parlama
+  // kalkiyor ve Vulkan desteklemeyen Android cihazlarda acilista
+  // ANR olusmuyor.
+  await LiquidGlassWidgets.initialize();
+
   // Durum cubugu ikonlarini acik renk yap - koyu zeminde okunur olsun.
+  // Gezinme cubugu artik seffaf: alt sekme cubugu cam oldugu icin
+  // arkasindaki icerigin gorunmesi gerekiyor.
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,
     statusBarIconBrightness: Brightness.light,
     statusBarBrightness: Brightness.dark,
-    systemNavigationBarColor: Renkler.yuzey,
+    systemNavigationBarColor: Colors.transparent,
     systemNavigationBarIconBrightness: Brightness.light,
   ));
 
-  runApp(const DepremTakipUygulamasi());
+  runApp(LiquidGlassWidgets.wrap(
+    child: const DepremTakipUygulamasi(),
+    // MaterialApp kullaniyoruz: cam widgetlari cihazin ham parlakligina
+    // degil, uygulamanin ThemeMode'una baksin. Bu satir olmazsa cihaz
+    // acik temadayken golge ve kenarliklar kayboluyor.
+    brightnessResolver: Theme.maybeBrightnessOf,
+    theme: CamTema.veri(),
+  ));
 }
 
 class DepremTakipUygulamasi extends StatelessWidget {

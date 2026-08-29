@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import '../utils/tema.dart';
 
@@ -67,13 +68,12 @@ class _IskeletKartState extends State<_IskeletKart>
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      child: Container(
+      // Iskelet kartlar da cam: yuklenme bitince yerine gelecek gercek
+      // kartla ayni yuzey dilini konusuyor, gecis sicramiyor.
+      child: GlassCard(
         height: 86,
-        decoration: BoxDecoration(
-          color: Renkler.yuzey,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Renkler.kenarlik),
-        ),
+        quality: GlassQuality.minimal,
+        shape: const LiquidRoundedSuperellipse(borderRadius: 18),
         padding: const EdgeInsets.all(16),
         child: Row(
           children: [

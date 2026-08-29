@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import '../services/deprem_servisi.dart';
 import '../state/deprem_deposu.dart';
+import '../utils/cam_tema.dart';
 import '../utils/tema.dart';
 
 /// Alttan acilan ayrintili filtre paneli.
@@ -16,11 +18,16 @@ class FiltreSayfasi extends StatelessWidget {
   const FiltreSayfasi({super.key, required this.depo});
 
   /// Paneli acar.
+  ///
+  /// GlassSheet: alttan cam bir levha olarak yukseliyor, arkasindaki
+  /// liste bulaniklasarak goruluyor. Kullanici filtreyi degistirirken
+  /// altta kac sonuc kaldigini camin arkasindan takip edebiliyor.
   static Future<void> ac(BuildContext context, DepremDeposu depo) {
-    return showModalBottomSheet<void>(
+    return GlassSheet.show<void>(
       context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
+      settings: CamAyar.panel,
+      topBorderRadius: 32,
+      dragIndicatorColor: Renkler.metinSolgun,
       builder: (_) => FiltreSayfasi(depo: depo),
     );
   }
@@ -66,12 +73,12 @@ class FiltreSayfasi extends StatelessWidget {
                 ),
                 Wrap(
                   spacing: 8,
+                  runSpacing: 8,
                   children: VeriKaynagi.values.map((k) {
-                    return ChoiceChip(
-                      label: Text(k.ad),
-                      selected: depo.kaynak == k,
-                      onSelected: (s) {
-                        if (!s) return;
+                    return _cip(
+                      etiket: k.ad,
+                      secili: depo.kaynak == k,
+                      onTap: () {
                         HapticFeedback.selectionClick();
                         depo.kaynakDegistir(k);
                       },
@@ -85,11 +92,10 @@ class FiltreSayfasi extends StatelessWidget {
                   spacing: 8,
                   runSpacing: 8,
                   children: const [1, 3, 7, 30].map((gun) {
-                    return ChoiceChip(
-                      label: Text(gun == 1 ? 'Son 24 saat' : 'Son $gun gün'),
-                      selected: depo.gunSayisi == gun,
-                      onSelected: (s) {
-                        if (!s) return;
+                    return _cip(
+                      etiket: gun == 1 ? 'Son 24 saat' : 'Son $gun gün',
+                      secili: depo.gunSayisi == gun,
+                      onTap: () {
                         HapticFeedback.selectionClick();
                         depo.gunDegistir(gun);
                       },
@@ -106,8 +112,9 @@ class FiltreSayfasi extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: Renkler.yuzeyUst,
+                        color: Renkler.yuzeyUstSaydam,
                         borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Renkler.camKenar),
                       ),
                       child: Text(
                         depo.minBuyukluk == 0
@@ -122,11 +129,15 @@ class FiltreSayfasi extends StatelessWidget {
                     ),
                   ],
                 ),
-                Slider(
+                GlassSlider(
                   value: depo.minBuyukluk,
                   min: 0,
                   max: 6,
                   divisions: 12,
+                  activeColor: Renkler.vurgu,
+                  settings: CamAyar.kontrol,
+                  useOwnLayer: true,
+                  glowColor: Renkler.vurgu,
                   // Surukleneken sadece etiketi guncelle (istek atma),
                   // birakinca veriyi yenile. Aksi halde her piksel
                   // hareketinde API'ye istek gider.
@@ -139,33 +150,52 @@ class FiltreSayfasi extends StatelessWidget {
 
                 const SizedBox(height: 12),
                 _baslik('Sıralama'),
-                Wrap(
-                  spacing: 8,
-                  children: Siralama.values.map((s) {
-                    return ChoiceChip(
-                      label: Text(s.etiket),
-                      selected: depo.siralama == s,
-                      onSelected: (secildi) {
-                        if (!secildi) return;
-                        HapticFeedback.selectionClick();
-                        depo.siralamaDegistir(s);
-                      },
-                    );
-                  }).toList(),
+                const SizedBox(height: 8),
+                // Siralama iki secenekli ve birbirini disliyor: iOS 26'da
+                // bunun karsiligi segment kontrolu. Secili segment cam bir
+                // hap olarak kayarak geciyor.
+                GlassSegmentedControl(
+                  segments: Siralama.values
+                      .map((s) => GlassSegment(label: s.etiket))
+                      .toList(),
+                  selectedIndex: Siralama.values.indexOf(depo.siralama),
+                  onSegmentSelected: (i) {
+                    HapticFeedback.selectionClick();
+                    depo.siralamaDegistir(Siralama.values[i]);
+                  },
+                  settings: CamAyar.kontrol,
+                  indicatorColor: Renkler.vurgu.withValues(alpha: 0.35),
+                  backgroundColor: Renkler.yuzeyUstSaydam,
+                  selectedTextStyle: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: Renkler.metin,
+                  ),
+                  unselectedTextStyle: const TextStyle(
+                    fontSize: 13,
+                    color: Renkler.metinSolgun,
+                  ),
                 ),
 
                 const SizedBox(height: 24),
                 SizedBox(
                   width: double.infinity,
-                  child: FilledButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 15),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+                  child: GlassButton.custom(
+                    onTap: () => Navigator.of(context).pop(),
+                    label: '${depo.liste.length} sonucu göster',
+                    height: 52,
+                    style: GlassButtonStyle.prominent,
+                    settings: CamAyar.tonlu(Renkler.vurgu, yogunluk: 0.18),
+                    useOwnLayer: true,
+                    shape: const LiquidRoundedSuperellipse(borderRadius: 18),
+                    child: Text(
+                      '${depo.liste.length} sonucu göster',
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: Renkler.metin,
                       ),
                     ),
-                    child: Text('${depo.liste.length} sonucu göster'),
                   ),
                 ),
               ],
@@ -173,6 +203,41 @@ class FiltreSayfasi extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+
+  /// Tek secimlik cam cip.
+  ///
+  /// [ChoiceChip] yerine [GlassChip]: secili olan cam kalinlasip vurgu
+  /// rengini aliyor, secili olmayan saydam kaliyor. Renk korlugunde de
+  /// ayrilabilsin diye secili cipin yazisi ayrica kalinlasiyor.
+  Widget _cip({
+    required String etiket,
+    required bool secili,
+    required VoidCallback onTap,
+    IconData? ikon,
+  }) {
+    return Semantics(
+      button: true,
+      selected: secili,
+      label: '$etiket filtresi',
+      child: ExcludeSemantics(
+        child: GlassChip(
+          label: etiket,
+          selected: secili,
+          onTap: onTap,
+          icon: ikon == null ? null : Icon(ikon, size: 14),
+          iconColor: secili ? Renkler.vurgu : Renkler.metinSolgun,
+          selectedColor: Renkler.vurgu.withValues(alpha: 0.35),
+          settings: CamAyar.kontrol,
+          useOwnLayer: true,
+          labelStyle: TextStyle(
+            fontSize: 13,
+            fontWeight: secili ? FontWeight.w700 : FontWeight.w500,
+            color: secili ? Renkler.metin : Renkler.metinSolgun,
+          ),
+        ),
+      ),
     );
   }
 

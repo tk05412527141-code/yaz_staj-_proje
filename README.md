@@ -236,6 +236,16 @@ RSS beslemeleri sendikasyon için yayınlanır. Başlık + kısa özet + kaynak 
 
 ## Tasarım Kararları
 
+**Liquid Glass (iOS 26) arayüz.** Gezinme ve kontrol katmanı — alt sekme çubuğu, üst çubuklar, butonlar, çipler, alttan açılan paneller — gerçek cam. Shader tabanlı bulanıklık, kırılma ve dokununca esneyen "jelly" fiziği [`liquid_glass_widgets`](https://pub.dev/packages/liquid_glass_widgets) ile geliyor; iOS 26 cihazlarda yerel UIKit bileşenleri için [`native_liquid_glass`](https://pub.dev/packages/native_liquid_glass) de bağımlılıklarda. Cam efekti platformdan bağımsız çalışıyor (iOS, Android, web, masaüstü) çünkü fragment shader'la çiziliyor, işletim sistemine bağlı değil.
+
+**Cam nerede, cam nerede değil.** iOS 26'nın kendi kuralı: cam **gezinme katmanı** içindir, içerik değil. Bu yüzden deprem kartlarının içindeki büyüklük rozeti, harita işaretçilerindeki sayı, gün başlıklarındaki yazı tam doygun ve opak kaldı. Kritik bir sayıyı yarı saydam bir yüzeye koymak, tasarımı güzelleştirirken okunurluğu bozar — bir afet uygulamasında bu kabul edilebilir bir takas değil.
+
+**Cam kalitesi listede `minimal`, odakta `standard`.** 50+ kartlık bir listede her kart için fragment shader çalıştırmak kareleri düşürüyordu. Liste kartları `GlassQuality.minimal` kullanıyor (BackdropFilter + doygunluk matrisi, sıfır shader maliyeti); durum kartı, hazırlık ilerlemesi, acil durum butonu gibi tekil odak yüzeyleri `standard` ile gerçek kırılma yapıyor.
+
+**Cam duruma göre renkleniyor.** Durum kartı sakinken yeşil, sarsıntı varken şiddet renginde tonlanmış cam. Acil durum butonu basılı tutuldukça kızarıp kalınlaşıyor. Renk bilgisi camın kendisine giriyor; ayrı bir uyarı katmanı gerekmiyor. Renk körlüğü için her durumda yazı ve sayı da değişiyor.
+
+**Zemin gradyanı zorunlu.** Cam, arkasındakini bulanıklaştırıp kırarak görünür olur — düz tek renk bir zeminde cam efekti "yok" gibi durur. `CamZemin`, koyu zemine göz yormayan geniş ışık lekeleri koyuyor. Detay ekranında bu lekeler depremin büyüklük rengini alıyor: ekrana girer girmez sarsıntının şiddeti renkten hissediliyor.
+
 **Koyu tema, tek seçenek.** Deprem/afet uygulamalarının yaygın görsel dili koyu zemin. Büyüklük renkleri koyu üzerinde çok daha okunaklı çıkıyor ve gece bakıldığında göz yormuyor.
 
 **Bilgi hiyerarşisi.** Kartta göz önce sol taraftaki renkli büyüklük rozetine takılıyor, sonra konuma, en son derinlik/zaman gibi ayrıntılara. Sol kenardaki renk şeridi listeyi hızlı taramayı sağlıyor.
@@ -356,6 +366,8 @@ lib/
 │   └── durum_gorunumu.dart       Boş / hata ekranları
 └── utils/
     ├── tema.dart                 Renk paleti ve bileşen stilleri
+    ├── cam_tema.dart             Liquid Glass katmanı: cam ayarları,
+    │                             zemin gradyanı, ortak sayfa iskeleti
     ├── buyukluk_stili.dart       Büyüklüğe göre renk / etiket / boyut
     ├── siddet_hesabi.dart        Mesafe + tahmini sarsıntı şiddeti
     ├── gun_gruplama.dart         Listeyi günlere ayırma, başlık metinleri
